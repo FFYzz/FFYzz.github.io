@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="前言本文的 JDK 源码解读将基于 JDK14-GA 版本。 ThreadLocal 实例是一个共享对象，多线程环境下每个线程都会创建一份副本，因此初始的情况下每个线程具有相同的初始值，但是后续每个线程对 ThreadLocal 的修改是相互独立的。因为 ThreadLocal 是线程内的变量，因此不存在多线程竞争造成的问题。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ThreadLocal 源码全解析">
+<meta property="og:url" content="http://yoursite.com/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:site_name" content="Journey">
+<meta property="og:description" content="前言本文的 JDK 源码解读将基于 JDK14-GA 版本。 ThreadLocal 实例是一个共享对象，多线程环境下每个线程都会创建一份副本，因此初始的情况下每个线程具有相同的初始值，但是后续每个线程对 ThreadLocal 的修改是相互独立的。因为 ThreadLocal 是线程内的变量，因此不存在多线程竞争造成的问题。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gdgjszbev1j20tq1040uk.jpg">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gdgtbwuvxtj21hi0miq89.jpg">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gdgtl61o4kj20u210gdme.jpg">
+<meta property="article:published_time" content="2020-08-05T06:35:17.000Z">
+<meta property="article:modified_time" content="2020-08-05T06:50:44.961Z">
+<meta property="article:author" content="FFYzz">
+<meta property="article:tag" content="JDK">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gdgjszbev1j20tq1040uk.jpg">
+
+<link rel="canonical" href="http://yoursite.com/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ThreadLocal 源码全解析 | Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ThreadLocal 源码全解析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 14:35:17 / 修改时间：14:50:44" itemprop="dateCreated datePublished" datetime="2020-08-05T14:35:17+08:00">2020-08-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>本文的 JDK 源码解读将基于 JDK14-GA 版本。</p>
+<p>ThreadLocal 实例是一个共享对象，多线程环境下每个线程都会创建一份副本，因此初始的情况下每个线程具有相同的初始值，但是后续每个线程对 ThreadLocal 的修改是相互独立的。因为 ThreadLocal 是线程内的变量，因此不存在多线程竞争造成的问题。</p>
+<a id="more"></a>
+
+<h2 id="类结构图"><a href="#类结构图" class="headerlink" title="类结构图"></a>类结构图</h2><p>在分析 ThreadLocal 源码之前，先给出 ThreadLocal 的类结构图。</p>
+<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gdgjszbev1j20tq1040uk.jpg"></p>
+<p>上面的类关系图基本上包括了 ThreadLocal 类的主要构件。从图中可以看出，Thread 类中持有一个类型为 ThreadLocalMap 的属性 threadLocals。每个线程都会维护自己的 threadLocals 属性，因此不会存在多线程竞争造成的数据不一致的问题。ThreadLocal 类中有一个内部类 ThreadLocalMap，这个类是实现 ThreadLocal 的核心类。可以把 ThreadLocalMap 理解为是一个 Map。同时，ThreadLocalMap 中有一个 Entry 的内部类。Entry 继承自 WeakReference，因此指向 Entry 对象的引用是一个弱引用类型。弱引用类型在 YGC 的时候会被回收。对于四种不同强度的引用类型可以查阅其他资料。</p>
+<p>除了类结构图外，下图是一张 ThreadLocal 对象的内存分布图。</p>
+<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gdgtbwuvxtj21hi0miq89.jpg"></p>
+<p>其中的虚线表示弱引用，实线表示强引用。<br>使用 ThreadLocal 存在两个隐患：</p>
+<ol>
+<li>脏数据</li>
+<li>内存泄露</li>
+</ol>
+<h3 id="脏数据"><a href="#脏数据" class="headerlink" title="脏数据"></a>脏数据</h3><p>脏数据的出现一般出现在线程池中。在线程池中，线程会被复用，如果线程持有的 threadLocals 没有调用 remove() 方法进行清理，那么下一个获取该线程的任务如果不调用 set() 方法对 ThreadLocal 进行设置，会读取到上一个使用该线程的任务的脏数据。</p>
+<p><strong>解决该问题的方案则是在线程使用完 ThreadLocal 后，调用其 remove() 方法进行清理即可。</strong></p>
+<h3 id="内存泄露"><a href="#内存泄露" class="headerlink" title="内存泄露"></a>内存泄露</h3><p>如上内存分布图所示，当线程在执行过程中，若栈中的 ThreadLocal 对象引用指向 null，那么堆中的 ThreadLocal 对象实例仅剩下 Entry 对象中的弱引用。因为仅有弱引用指向在发生 YGC 时会被回收，因此当发生 YGC 后，堆中的 ThreadLocal 对象会被回收，Entry 对象中的 key 即指向了 null。栈中的 ThreadLocal 对象引用之所以会被指向 null，是因为程序员意图控制使得该 ThreadLocal 不再使用，因此与之相关的 value 应该被回收。虽然 ThreadLocal 在堆上分配的内存被回收了，但是其存储的值 value 无法被回收，造成了内存泄露的问题。</p>
+<p><strong>解决该问题的方法与脏数据问题的处理类似，在使用完 ThreadLocal 之后调用 remove() 方法对其进行清理。</strong></p>
+<h2 id="源码拆解"><a href="#源码拆解" class="headerlink" title="源码拆解"></a>源码拆解</h2><p>ThreadLocal 类的全源码注解可参看本人的中文 JDK git 仓库。</p>
+<p>ThreadLocal 的所有属性由下表所示。</p>
+<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gdgtl61o4kj20u210gdme.jpg"></p>
+<p>其中有两个内部类，SuppliedThreadLocal 以及 ThreadLocalMap。我们这里将重点分析 ThreadLocalMap。SuppliedThreadLocal 是 JDK8 引入的支持以 Supplier 接口进行初始化的内部类。</p>
+<h3 id="ThreadLocalMap"><a href="#ThreadLocalMap" class="headerlink" title="ThreadLocalMap"></a>ThreadLocalMap</h3><p>前面提到了，ThreadLocalMap 类似于 HashMap，也是一个 Map。首先先看下 ThreadLocalMap 中的属性。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Entry</span> <span class="keyword">extends</span> <span class="title">WeakReference</span>&lt;<span class="title">ThreadLocal</span>&lt;?&gt;&gt; </span>&#123;</span><br><span class="line">     Object value;</span><br><span class="line">     Entry(ThreadLocal&lt;?&gt; k, Object v) &#123;</span><br><span class="line">         <span class="keyword">super</span>(k);</span><br><span class="line">         value = v;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> INITIAL_CAPACITY = <span class="number">16</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> Entry[] table;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> size = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> threshold; <span class="comment">// Default to 0</span></span><br></pre></td></tr></table></figure>
+
+<p>由源码可见，ThreadLocalMap 中的数据结构由内部类 Entry 来表示。Entry 继承自 WeakReference。Entry 中的 k 引用类型为弱引用类型，因此当发生 YGC 情况下，Entry 中的 k 指向的 ThreadLocal 对象若仅剩下该弱引用，那么在堆中的 ThreadLocal 对象将会被回收。</p>
+<p>此外，Entry 对象存放在 table 中，table 默认的长度为 16，并且该长度仅能为 2 的 n 次幂。当达到阈值时，table 会进行扩容，该阈值为 2/3 的 table 的长度。</p>
+<p>size 保存的是当前 table 中实际存在的 Entry 个数。包括 key == null 的 Entry。</p>
+<h3 id="nextHashCode"><a href="#nextHashCode" class="headerlink" title="nextHashCode"></a>nextHashCode</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> AtomicInteger nextHashCode = <span class="keyword">new</span> AtomicInteger();</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> HASH_INCREMENT = <span class="number">0x61c88647</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">nextHashCode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> nextHashCode.getAndAdd(HASH_INCREMENT);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ThreadLocal 类中提供了一个 nextHashCode 方法。前文讲到过 ThreadLocal 中使用了一个 ThreadLocalMap 用来存放值。nextHashCode 方法用于计算 Map 中 key 的 Hash 值，以计算 ThreadLocal 在 table 中存放的位置。值得注意的是，ThreadLocal 中的 Map 解决 Hash 冲突的方法并不像 HashMap 使用链地址法，而是使用 线性探测法 来解决冲突。</p>
+<h3 id="get"><a href="#get" class="headerlink" title="get"></a>get</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> T <span class="title">get</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Thread t = Thread.currentThread();</span><br><span class="line">    ThreadLocalMap map = getMap(t);</span><br><span class="line">    <span class="keyword">if</span> (map != <span class="keyword">null</span>) &#123;</span><br><span class="line">        ThreadLocalMap.Entry e = map.getEntry(<span class="keyword">this</span>);</span><br><span class="line">        <span class="keyword">if</span> (e != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="meta">@SuppressWarnings(&quot;unchecked&quot;)</span></span><br><span class="line">            T result = (T)e.value;</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> setInitialValue();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该 get 方法为 ThreadLocal 类中的实现。该方法可分为如下几部分：</p>
+<ol>
+<li>获取当前线程，从获取当前线程持有的 ThreadLocalMap。</li>
+<li>如果 ThreadLocalMap 已初始化 &amp;&amp; 当前 ThreadLocal 作为 key 的 Entry 不为 null，则从 Map 中获取值。</li>
+<li>如果 ThreadLocalMap 未初始化，或者已初始化但是当前 ThreadLocal 未存储值,则调用 setInitialValue 方法。</li>
+</ol>
+<h4 id="getEntry"><a href="#getEntry" class="headerlink" title="getEntry"></a>getEntry</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> Entry <span class="title">getEntry</span><span class="params">(ThreadLocal&lt;?&gt; key)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> i = key.threadLocalHashCode &amp; (table.length - <span class="number">1</span>);</span><br><span class="line">    Entry e = table[i];</span><br><span class="line">    <span class="keyword">if</span> (e != <span class="keyword">null</span> &amp;&amp; e.get() == key)</span><br><span class="line">        <span class="keyword">return</span> e;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">return</span> getEntryAfterMiss(key, i, e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>getEntry 是内部类 ThreadLocalMap 中定义的方法。该方法可拆分为如下几个部分：</p>
+<ol>
+<li>根据 key，也就是 ThreadLocal 实例计算其在 table 中的位置。计算的方法使用了比较常规的掩码计算的方式。因为 table.length 为 2 的 n 次幂，所以计算会非常快。</li>
+<li>根据位置获取到 table 对应位置上的 Entry。如果对应位置上的 Entry 不为 null 且 key 相等(引用相等)，那么直接返回该 Entry。</li>
+<li>否则会调用 getEntryAfterMiss 方法。</li>
+</ol>
+<h4 id="getEntryAfterMiss"><a href="#getEntryAfterMiss" class="headerlink" title="getEntryAfterMiss"></a>getEntryAfterMiss</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> Entry <span class="title">getEntryAfterMiss</span><span class="params">(ThreadLocal&lt;?&gt; key, <span class="keyword">int</span> i, Entry e)</span> </span>&#123;</span><br><span class="line">    Entry[] tab = table;</span><br><span class="line">    <span class="keyword">int</span> len = tab.length;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (e != <span class="keyword">null</span>) &#123;</span><br><span class="line">        ThreadLocal&lt;?&gt; k = e.get();</span><br><span class="line">        <span class="keyword">if</span> (k == key)</span><br><span class="line">            <span class="keyword">return</span> e;</span><br><span class="line">        <span class="keyword">if</span> (k == <span class="keyword">null</span>)</span><br><span class="line">            expungeStaleEntry(i);</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            i = nextIndex(i, len);</span><br><span class="line">        e = tab[i];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一般情况下，会调用到 getEntryAfterMiss 方法的原因是 发生了哈希冲突，导致 getEntry 方法中 e.get() == key 的条件不成立。</p>
+<p>getEntryAfterMiss 方法中的逻辑也非常清晰，直接看 while 循环中的三个判断条件即可：</p>
+<ol>
+<li>如果满足 k == key，那么说明找到了正确的 Entry。</li>
+<li>如果满足 k == null，说明该位置上的 ThreadLocal 被回收了，但是 key 对应的 value 还未被回收，因此可能会造成前面提到的内存泄露，所以需要调用 expungeStaleEntry 方法。</li>
+<li>不满足以上两个条件就往后找。</li>
+<li>若都找不到，则返回 null。</li>
+</ol>
+<p>expungeStaleEntry 方法将放在后面在分析，这个方法是用于解决内存泄露问题的核心方法。</p>
+<h4 id="setInitialValue"><a href="#setInitialValue" class="headerlink" title="setInitialValue"></a>setInitialValue</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> T <span class="title">setInitialValue</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    T value = initialValue();</span><br><span class="line">    Thread t = Thread.currentThread();</span><br><span class="line">    ThreadLocalMap map = getMap(t);</span><br><span class="line">    <span class="keyword">if</span> (map != <span class="keyword">null</span>) &#123;</span><br><span class="line">        map.set(<span class="keyword">this</span>, value);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        createMap(t, value);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">this</span> <span class="keyword">instanceof</span> TerminatingThreadLocal) &#123;</span><br><span class="line">        TerminatingThreadLocal.register((TerminatingThreadLocal&lt;?&gt;) <span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>setInitialValue 可以拆成一下几部分：</p>
+<ol>
+<li>一进入 setInitialValue 方法，首先会调用 initialValue 方法。initialValue 在 ThreadLocal 方法中的实现直接返回 null。如果有初始化的需要，那么子类在继承 ThreadLocal 的时候需要重写 initialValue 方法。</li>
+<li>同样获取当前线程的绑定的 ThreadLocalMap，若 map 不为 null，则将初始值设置进去。</li>
+<li>如果 map 为 null，则初始化 map，同样将 默认值设置进去。</li>
+<li>如果当前的 ThreadLocal 实现是 TerminatingThreadLocal 类或者其子类。那么会向 REGISTRY 中进行注册。同样在 remove 的时候户进行反注册。</li>
+<li>返回初始值。</li>
+</ol>
+<h3 id="set"><a href="#set" class="headerlink" title="set"></a>set</h3><p>首先还是看下 ThreadLocal 中的 set 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">set</span><span class="params">(T value)</span> </span>&#123;</span><br><span class="line">    Thread t = Thread.currentThread();</span><br><span class="line">    ThreadLocalMap map = getMap(t);</span><br><span class="line">    <span class="keyword">if</span> (map != <span class="keyword">null</span>) &#123;</span><br><span class="line">        map.set(<span class="keyword">this</span>, value);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        createMap(t, value);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>同样将其拆解：</p>
+<ol>
+<li>获取当前线程以及其绑定的 ThreadLocalMap。</li>
+<li>若 map 未初始化，则创建 map。</li>
+<li>若 map 已初始化，则将值设置进 map。</li>
+</ol>
+<p>此时调用到了 ThreadLocalMap 中的 set 方法。</p>
+<h4 id="ThreadLocalMap-set"><a href="#ThreadLocalMap-set" class="headerlink" title="ThreadLocalMap#set"></a>ThreadLocalMap#set</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">set</span><span class="params">(ThreadLocal&lt;?&gt; key, Object value)</span> </span>&#123;</span><br><span class="line">    Entry[] tab = table;</span><br><span class="line">    <span class="keyword">int</span> len = tab.length;</span><br><span class="line">    <span class="keyword">int</span> i = key.threadLocalHashCode &amp; (len-<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (Entry e = tab[i];</span><br><span class="line">         e != <span class="keyword">null</span>;</span><br><span class="line">         e = tab[i = nextIndex(i, len)]) &#123;</span><br><span class="line">        ThreadLocal&lt;?&gt; k = e.get();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (k == key) &#123;</span><br><span class="line">            e.value = value;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (k == <span class="keyword">null</span>) &#123;</span><br><span class="line">            replaceStaleEntry(key, value, i);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    tab[i] = <span class="keyword">new</span> Entry(key, value);</span><br><span class="line">    <span class="keyword">int</span> sz = ++size;</span><br><span class="line">    <span class="keyword">if</span> (!cleanSomeSlots(i, sz) &amp;&amp; sz &gt;= threshold)</span><br><span class="line">        rehash();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该方法将 Entry 设置仅 table 中。重点同样在 for 循环中：</p>
+<ol>
+<li>for 循环的退出条件的 e == null。若通过该条件退出循环，表明需要在 table 中放入一个新的 Entry。并且放入之后需要调用 cleanSomeSlots 方法。该方法同样放到后面拆解 expungeStaleEntry 方法时再分析。</li>
+<li>进入 for 循环，表明该位置上的 Entry 不为 null。</li>
+<li>当条件 k == key 满足时，相当于覆盖旧值。</li>
+<li>当条件 k == null 满足时，说明某一个 ThreadLocal 被回收了，可能会发生内存泄露。调用 replaceStaleEntry 方法处理。同样放到后面再分析。</li>
+</ol>
+<h3 id="remove"><a href="#remove" class="headerlink" title="remove"></a>remove</h3><p>同样先看下 ThreadLocal 类中的 remove 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">remove</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ThreadLocalMap m = getMap(Thread.currentThread());</span><br><span class="line">    <span class="keyword">if</span> (m != <span class="keyword">null</span>) &#123;</span><br><span class="line">        m.remove(<span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该方法简洁明了，获取当前线程之后，如果当前线程持有的 ThreadLocalMap 不为 null，则委托给 ThreadLocalMap 中的 remove 方法进行清理。</p>
+<h4 id="ThreadLocalMap-remove"><a href="#ThreadLocalMap-remove" class="headerlink" title="ThreadLocalMap#remove"></a>ThreadLocalMap#remove</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">remove</span><span class="params">(ThreadLocal&lt;?&gt; key)</span> </span>&#123;</span><br><span class="line">    Entry[] tab = table;</span><br><span class="line">    <span class="keyword">int</span> len = tab.length;</span><br><span class="line">    <span class="keyword">int</span> i = key.threadLocalHashCode &amp; (len-<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">for</span> (Entry e = tab[i];</span><br><span class="line">         e != <span class="keyword">null</span>;</span><br><span class="line">         e = tab[i = nextIndex(i, len)]) &#123;</span><br><span class="line">        <span class="keyword">if</span> (e.get() == key) &#123;</span><br><span class="line">            e.clear();</span><br><span class="line">            expungeStaleEntry(i);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重点同样关注 for 循环：</p>
+<ol>
+<li>for 循环的退出条件为 e == null，若在此条件下退出，表明该 ThreadLocal 早已被移出 ThreadLocalMap。</li>
+<li>若找到对应的 key，将其指针指向 null，value 由后续的 expungeStaleEntry 方法进行处理。</li>
+</ol>
+<h3 id="expungeStaleEntry"><a href="#expungeStaleEntry" class="headerlink" title="expungeStaleEntry"></a>expungeStaleEntry</h3><p>本小节将分析以下三个方法：expungeStaleEntry / expungeStaleEntries / replaceStaleEntry / cleanSomeSlots。</p>
+<h4 id="expungeStaleEntry-1"><a href="#expungeStaleEntry-1" class="headerlink" title="expungeStaleEntry"></a>expungeStaleEntry</h4><p>首先来看 expungeStaleEntry 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">expungeStaleEntry</span><span class="params">(<span class="keyword">int</span> staleSlot)</span> </span>&#123;</span><br><span class="line">    Entry[] tab = table;</span><br><span class="line">    <span class="keyword">int</span> len = tab.length;</span><br><span class="line"></span><br><span class="line">    tab[staleSlot].value = <span class="keyword">null</span>;</span><br><span class="line">    tab[staleSlot] = <span class="keyword">null</span>;</span><br><span class="line">    size--;</span><br><span class="line"></span><br><span class="line">    Entry e;</span><br><span class="line">    <span class="keyword">int</span> i;</span><br><span class="line">    <span class="keyword">for</span> (i = nextIndex(staleSlot, len);</span><br><span class="line">         (e = tab[i]) != <span class="keyword">null</span>;</span><br><span class="line">         i = nextIndex(i, len)) &#123;</span><br><span class="line">        ThreadLocal&lt;?&gt; k = e.get();</span><br><span class="line">        <span class="keyword">if</span> (k == <span class="keyword">null</span>) &#123;</span><br><span class="line">            e.value = <span class="keyword">null</span>;</span><br><span class="line">            tab[i] = <span class="keyword">null</span>;</span><br><span class="line">            size--;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">int</span> h = k.threadLocalHashCode &amp; (len - <span class="number">1</span>);</span><br><span class="line">            <span class="keyword">if</span> (h != i) &#123;</span><br><span class="line">                tab[i] = <span class="keyword">null</span>;</span><br><span class="line">                <span class="keyword">while</span> (tab[h] != <span class="keyword">null</span>)</span><br><span class="line">                    h = nextIndex(h, len);</span><br><span class="line">                tab[h] = e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> i;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该方法的功能如其方法名所示，消除 stale Entry。对于 Stale Entry 的定义是这样的。如果一个 Entry 的 key == null，但是 value 并不等于 null。那么将其称为是一个 stale Entry。</p>
+<ol>
+<li>首先将要 expunge 的位置的 value 置为 null，并将 table 相应位置也置为 null。这里仅仅完成了最基本的处理。处理还在后头。</li>
+<li>for 循环开始处理从 staleSlot 到 tab[i] == null 中间可能遇到的 stale entry。为什么要这样处理呢？因为在 staleSlot 位置可能发生哈希冲突，因此原先计算出来位置在 staleSlot 上的 Entry 往后放了，所以在将该位置处理完之后，需要把后续计算出来的位置在 staleSlot 上的 Entry 移动。</li>
+<li>如果 k == null 条件成立，说明该位置上的 Entry 是一个 stale Entry。需要消除。</li>
+<li>否则，如果再满足 h != i 条件，该条件满足说明该 Entry 存放的位置是因为发生了哈希冲突之后根据线性探测法后移才出现在这里。因此需要计算出来它应该存放的位置，然后往后找到一个可以存放的位置。</li>
+<li>返回最后处理到的位置。</li>
+</ol>
+<h4 id="expungeStaleEntries"><a href="#expungeStaleEntries" class="headerlink" title="expungeStaleEntries"></a>expungeStaleEntries</h4><p>与 expungeStaleEntry 方法名相似的还有一个方法 expungeStaleEntries。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">expungeStaleEntries</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Entry[] tab = table;</span><br><span class="line">    <span class="keyword">int</span> len = tab.length;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; len; j++) &#123;</span><br><span class="line">        Entry e = tab[j];</span><br><span class="line">        <span class="keyword">if</span> (e != <span class="keyword">null</span> &amp;&amp; e.get() == <span class="keyword">null</span>)</span><br><span class="line">            expungeStaleEntry(j);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该方法进行全局的处理。在 rehash 方法中调用。</p>
+<h4 id="replaceStaleEntry"><a href="#replaceStaleEntry" class="headerlink" title="replaceStaleEntry"></a>replaceStaleEntry</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">replaceStaleEntry</span><span class="params">(ThreadLocal&lt;?&gt; key, Object value,</span></span></span><br><span class="line"><span class="function"><span class="params">                               <span class="keyword">int</span> staleSlot)</span> </span>&#123;</span><br><span class="line">    Entry[] tab = table;</span><br><span class="line">    <span class="keyword">int</span> len = tab.length;</span><br><span class="line">    Entry e;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> slotToExpunge = staleSlot;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = prevIndex(staleSlot, len);</span><br><span class="line">         (e = tab[i]) != <span class="keyword">null</span>;</span><br><span class="line">         i = prevIndex(i, len))</span><br><span class="line">        <span class="keyword">if</span> (e.get() == <span class="keyword">null</span>)</span><br><span class="line">            slotToExpunge = i;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = nextIndex(staleSlot, len);</span><br><span class="line">         (e = tab[i]) != <span class="keyword">null</span>;</span><br><span class="line">         i = nextIndex(i, len)) &#123;</span><br><span class="line">        ThreadLocal&lt;?&gt; k = e.get();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (k == key) &#123;</span><br><span class="line">            e.value = value;</span><br><span class="line"></span><br><span class="line">            tab[i] = tab[staleSlot];</span><br><span class="line">            tab[staleSlot] = e;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (slotToExpunge == staleSlot)</span><br><span class="line">                slotToExpunge = i;</span><br><span class="line">            cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (k == <span class="keyword">null</span> &amp;&amp; slotToExpunge == staleSlot)</span><br><span class="line">            slotToExpunge = i;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    tab[staleSlot].value = <span class="keyword">null</span>;</span><br><span class="line">    tab[staleSlot] = <span class="keyword">new</span> Entry(key, value);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (slotToExpunge != staleSlot)</span><br><span class="line">        cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>replaceStaleEntry 方法在 ThreadLocalMap#set 方法中被调用。当时的调用条件时这样的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (k == <span class="keyword">null</span>) &#123;</span><br><span class="line">    replaceStaleEntry(key, value, i);</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>也就是调用 set 方法时，当前位置的 Entry 为 stale Entry，则会执行该方法。</p>
+<ol>
+<li>首先看到第一个 for 循环。从传入的 staleSlot 位置往前找，尝试找到一个 stale Entry。若找到，则更新 slotToExpunge 为找到的位置的 index。否则 slotToExpunge 依然为传入的 staleSlot。</li>
+<li>第二个 for 循环。从传入的 staleSlot 位置开始往后找，直到 table[i] == null。在找的过程中，如果满足条件 k == key。那么就设置其 value 值。把原来传入的 staleSlot 位置设置为非 stale Entry。把当前遍历到的位置 i 设置为 stale Entry。如果之前往前找没有找到 stale Enrty，则将 slotToExpunge 更新为当前位置 i。随后调用 expungeStaleEntry 以及 cleanSomeSlots 进行清理。</li>
+<li>同样还在第二个 for 循环中。若 没有找到 k == key，表明又遇到了 stale Entry，且往前找的时候没有找到 stale Entry。则更新 slotToExpunge 为当前的 i。</li>
+<li>跳出第二个 for 循环表明没有找到传入的 key 与 table 中的 Entries 中的 key 匹配。则在 staleSlot 位置进行更新，直接将其指向一个新的 Entry。</li>
+<li>最后再判断上述过程是否有找到其他的 stale Entry，若有，则调用 expungeStaleEntry 以及 cleanSomeSlots 进行清理。</li>
+</ol>
+<h4 id="cleanSomeSlots"><a href="#cleanSomeSlots" class="headerlink" title="cleanSomeSlots"></a>cleanSomeSlots</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">cleanSomeSlots</span><span class="params">(<span class="keyword">int</span> i, <span class="keyword">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> removed = <span class="keyword">false</span>;</span><br><span class="line">    Entry[] tab = table;</span><br><span class="line">    <span class="keyword">int</span> len = tab.length;</span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        i = nextIndex(i, len);</span><br><span class="line">        Entry e = tab[i];</span><br><span class="line">        <span class="keyword">if</span> (e != <span class="keyword">null</span> &amp;&amp; e.get() == <span class="keyword">null</span>) &#123;</span><br><span class="line">            n = len;</span><br><span class="line">            removed = <span class="keyword">true</span>;</span><br><span class="line">            i = expungeStaleEntry(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">while</span> ( (n &gt;&gt;&gt;= <span class="number">1</span>) != <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">return</span> removed;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该方法是执行效率与内存管理折衷之后的结果。<br>首先由两种类型的方法会调用该方法，这两个入口传入的参数意义不同：</p>
+<ol>
+<li>set 方法调用，传入的 n 为当前 table 中元素的个数。</li>
+<li>replaceStaleEntry 方法调用，传入的 n 为当前 table 的 length。</li>
+</ol>
+<p>重点仍然在循环体中：</p>
+<ol>
+<li>循环最多次数为 log2(n) 次。</li>
+<li>do 循环中首先调用 nextIndex 方法是因为 expungeStaleEntry 方法返回的 index 为最后处理过的索引，所以从下一个位置开始找。</li>
+<li>e != null &amp;&amp; e.get() == null 该条件为寻找 stale Entry。如果找到，调用 expungeStaleEntry 进行处理。</li>
+<li>返回的结果为是否有过处理 stale Entry。</li>
+</ol>
+<h3 id="rehash"><a href="#rehash" class="headerlink" title="rehash"></a>rehash</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">rehash</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    expungeStaleEntries();</span><br><span class="line">    <span class="keyword">if</span> (size &gt;= threshold - threshold / <span class="number">4</span>)</span><br><span class="line">        resize();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>rehash 方法的调用条件为 ThreadLocalMap#set 中的：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!cleanSomeSlots(i, sz) &amp;&amp; sz &gt;= threshold)</span><br><span class="line">    rehash();</span><br></pre></td></tr></table></figure>
+
+<p>回到 rehash 方法，可以看到：</p>
+<ol>
+<li>全局处理 StaleEntries。</li>
+<li>判断 size 是否超过阈值，若超过阈值则进行 resize。</li>
+</ol>
+<h3 id="resize"><a href="#resize" class="headerlink" title="resize"></a>resize</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">resize</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Entry[] oldTab = table;</span><br><span class="line">    <span class="keyword">int</span> oldLen = oldTab.length;</span><br><span class="line">    <span class="keyword">int</span> newLen = oldLen * <span class="number">2</span>;</span><br><span class="line">    Entry[] newTab = <span class="keyword">new</span> Entry[newLen];</span><br><span class="line">    <span class="keyword">int</span> count = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (Entry e : oldTab) &#123;</span><br><span class="line">        <span class="keyword">if</span> (e != <span class="keyword">null</span>) &#123;</span><br><span class="line">            ThreadLocal&lt;?&gt; k = e.get();</span><br><span class="line">            <span class="keyword">if</span> (k == <span class="keyword">null</span>) &#123;</span><br><span class="line">                e.value = <span class="keyword">null</span>; <span class="comment">// Help the GC</span></span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">int</span> h = k.threadLocalHashCode &amp; (newLen - <span class="number">1</span>);</span><br><span class="line">                <span class="keyword">while</span> (newTab[h] != <span class="keyword">null</span>)</span><br><span class="line">                    h = nextIndex(h, newLen);</span><br><span class="line">                newTab[h] = e;</span><br><span class="line">                count++;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    setThreshold(newLen);</span><br><span class="line">    size = count;</span><br><span class="line">    table = newTab;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>resize 方法挺长的，但是思路非常清晰：</p>
+<ol>
+<li>新建一个 2 倍长度的 table。</li>
+<li>看到 for 循环，如果满足条件 k == null，那么说明该 Entry 为 stale Entry，不必移到新的 table 中，因此只需将 value 指向 null，帮助 GC。</li>
+<li>否则，计算新的位置，将 Entry 放入正确的位置中，中间使用了线性探测法解决哈希冲突。</li>
+<li>设置新的阈值。</li>
+<li>设置 size。</li>
+<li>指向新的 table。</li>
+</ol>
+<h2 id="Best-Practice"><a href="#Best-Practice" class="headerlink" title="Best Practice"></a>Best Practice</h2><blockquote>
+<p>{@code ThreadLocal} instances are typically private static fields in classes that wish to associate state with a thread (e.g., a user ID or Transaction ID).</p>
+</blockquote>
+<ul>
+<li>为了解决脏数据以及内存泄露问题，在每一次使用完 ThreadLocal 后都需要手动调用 remove 方法。</li>
+<li>根据源码中的注释提示，ThreadLocal 实例一般设置成 private static。</li>
+</ul>
+<h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2><p>ThreadLocal源码深度剖析<br>《码出高效：Java开发手册》</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/JDK/" rel="tag"># JDK</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/05/StampedLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="prev" title="StampedLock 源码全解析">
+      <i class="fa fa-chevron-left"></i> StampedLock 源码全解析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/" rel="next" title="Floyd's Cycle Detection Algorithm">
+      Floyd's Cycle Detection Algorithm <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%B1%BB%E7%BB%93%E6%9E%84%E5%9B%BE"><span class="nav-number">2.</span> <span class="nav-text">类结构图</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%84%8F%E6%95%B0%E6%8D%AE"><span class="nav-number">2.1.</span> <span class="nav-text">脏数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E6%B3%84%E9%9C%B2"><span class="nav-number">2.2.</span> <span class="nav-text">内存泄露</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E6%8B%86%E8%A7%A3"><span class="nav-number">3.</span> <span class="nav-text">源码拆解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ThreadLocalMap"><span class="nav-number">3.1.</span> <span class="nav-text">ThreadLocalMap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nextHashCode"><span class="nav-number">3.2.</span> <span class="nav-text">nextHashCode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#get"><span class="nav-number">3.3.</span> <span class="nav-text">get</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#getEntry"><span class="nav-number">3.3.1.</span> <span class="nav-text">getEntry</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#getEntryAfterMiss"><span class="nav-number">3.3.2.</span> <span class="nav-text">getEntryAfterMiss</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#setInitialValue"><span class="nav-number">3.3.3.</span> <span class="nav-text">setInitialValue</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#set"><span class="nav-number">3.4.</span> <span class="nav-text">set</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ThreadLocalMap-set"><span class="nav-number">3.4.1.</span> <span class="nav-text">ThreadLocalMap#set</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#remove"><span class="nav-number">3.5.</span> <span class="nav-text">remove</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ThreadLocalMap-remove"><span class="nav-number">3.5.1.</span> <span class="nav-text">ThreadLocalMap#remove</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#expungeStaleEntry"><span class="nav-number">3.6.</span> <span class="nav-text">expungeStaleEntry</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#expungeStaleEntry-1"><span class="nav-number">3.6.1.</span> <span class="nav-text">expungeStaleEntry</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#expungeStaleEntries"><span class="nav-number">3.6.2.</span> <span class="nav-text">expungeStaleEntries</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#replaceStaleEntry"><span class="nav-number">3.6.3.</span> <span class="nav-text">replaceStaleEntry</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#cleanSomeSlots"><span class="nav-number">3.6.4.</span> <span class="nav-text">cleanSomeSlots</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rehash"><span class="nav-number">3.7.</span> <span class="nav-text">rehash</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#resize"><span class="nav-number">3.8.</span> <span class="nav-text">resize</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Best-Practice"><span class="nav-number">4.</span> <span class="nav-text">Best Practice</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">推荐阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="FFYzz"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">FFYzz</p>
+  <div class="site-description" itemprop="description">在自我鄙视中一步一步往上爬</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/FFYzz" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;FFYzz" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:cryptochen95@gmail.com" title="E-Mail → mailto:cryptochen95@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FFYzz</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

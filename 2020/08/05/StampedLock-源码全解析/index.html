@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="JUC 包源码全解析文章导航: Lock接口 源码全解析Condition接口 源码全解析LockSupport 源码全解析AbstractOwnableSynchronizer 源码全解析AbstractQueuedSynchronizer 源码全解析ReentrantLock 源码全解析ReentrantReadWriteLock 源码全解析StampedLock 源码全解析 本文 LockS">
+<meta property="og:type" content="article">
+<meta property="og:title" content="StampedLock 源码全解析">
+<meta property="og:url" content="http://yoursite.com/2020/08/05/StampedLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:site_name" content="Journey">
+<meta property="og:description" content="JUC 包源码全解析文章导航: Lock接口 源码全解析Condition接口 源码全解析LockSupport 源码全解析AbstractOwnableSynchronizer 源码全解析AbstractQueuedSynchronizer 源码全解析ReentrantLock 源码全解析ReentrantReadWriteLock 源码全解析StampedLock 源码全解析 本文 LockS">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gehunvx8mnj21yy168als.jpg">
+<meta property="article:published_time" content="2020-08-05T06:10:47.000Z">
+<meta property="article:modified_time" content="2020-08-05T06:34:06.883Z">
+<meta property="article:author" content="FFYzz">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gehunvx8mnj21yy168als.jpg">
+
+<link rel="canonical" href="http://yoursite.com/2020/08/05/StampedLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>StampedLock 源码全解析 | Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/05/StampedLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          StampedLock 源码全解析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 14:10:47 / 修改时间：14:34:06" itemprop="dateCreated datePublished" datetime="2020-08-05T14:10:47+08:00">2020-08-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>JUC 包源码全解析文章导航:</strong></p>
+<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
+<p><strong>本文 LockSupport 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>LockSupport 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+<a id="more"></a>
+
+<p>StampedLock 不是基于 AQS 实现的，其内部自成一套体系。StampedLock 的锁状态由 version 和 mode 来表示。其中有三种 mode。分别是 Writing/Reading/Optimistic Reading 。Writing 模式可以理解为 ReentrantReadWriteLock 中的 ReadLock，Reading 模式可以理解为 ReentrantReadWriteLock 中的 WriteLock。但是需要注意的是 StampedLock 中的读写锁都是不可重入的。Optimistic Reading 是一种乐观读锁，在读多写少的场景下性能会优于普通的 Reading 模式。</p>
+<p>StampedLock 常用于构建线程安全组件的工具类，StampedLock 的使用有如下几个短板：</p>
+<ul>
+<li>stamp 的值是可以猜测的，所以使用 StampedLock 的可能存在安全问题。</li>
+<li>stamp 的值可能在系统长时间运行之后会循环使用。</li>
+<li>StampedLocks 支持序列化，但是反序列化的得到的 StampedLocks 是无锁状态的。(需要手动处理)</li>
+</ul>
+<p>StampedLock 中对外暴露的主要方法由如下思维导图所示。</p>
+<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gehunvx8mnj21yy168als.jpg"></p>
+<h2 id="常量"><a href="#常量" class="headerlink" title="常量"></a>常量</h2><p>StampedLock 中定义了许多的常量，这些常量用于锁状态的判断。StampedLock 中的锁状态用一个 long 类型的 state 变量来表示。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> LG_READERS = <span class="number">7</span>; <span class="comment">// 127 readers</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> RUNIT = <span class="number">1L</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> WBIT = <span class="number">1L</span> &lt;&lt; LG_READERS;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> RBITS = WBIT - <span class="number">1L</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> RFULL = RBITS - <span class="number">1L</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> ABITS = RBITS | WBIT;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> SBITS = ~RBITS; <span class="comment">// note overlap with ABITS</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> RSAFE = ~(<span class="number">3L</span> &lt;&lt; (LG_READERS - <span class="number">1</span>));</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> ORIGIN = WBIT &lt;&lt; <span class="number">1</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INTERRUPTED = <span class="number">1L</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> WAITING = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CANCELLED = <span class="number">0x80000000</span>; <span class="comment">// must be negative</span></span><br></pre></td></tr></table></figure>
+
+<p>如前文所述，StampedLock 中的锁状态由一个 64 位的 long 型变量 state 来表示。LG_READERS = 7，用 state 变量的低 7 位来表示读锁的持有个数。因为读锁的持有个数只能是 7 位，因此可能出现溢出(7 位不够表示)的情况。因此在 StampedLock 中定义了一个 int 类型的 readerOverflow 变量来计数溢出的读锁个数。</p>
+<p>RUNIT = 1，读锁的增加单位，表示每增加一个持有读锁的线程，用该常量做加数。</p>
+<p>WBIT = 1L &lt;&lt; LG_READERS，读锁的标记值。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">10000000</span></span><br></pre></td></tr></table></figure>
+
+<p>RBITS = WBIT - 1L，读计数的掩码，可用该常量计算得到读锁的个数。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">01111111</span></span><br></pre></td></tr></table></figure>
+
+<p>RFULL = RBITS - 1L，state 变量能表示的读锁个数的上限。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">01111110</span></span><br></pre></td></tr></table></figure>
+
+<p>ABITS = RBITS | WBIT，读写锁的掩码，可用于计算得到当前锁是否被持有。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">11111111</span></span><br></pre></td></tr></table></figure>
+
+<p>SBITS = ~RBITS，对读计数掩码取反。与乐观锁相关的常量。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">10000000</span></span><br></pre></td></tr></table></figure>
+
+<p>RSAFE = ~(3L &lt;&lt; (LG_READERS - 1))，在修改读的 state 的时候用来确保读的计数没有超出范围。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">11111111</span> <span class="number">00111111</span></span><br></pre></td></tr></table></figure>
+
+<p>ORIGIN = WBIT &lt;&lt; 1，锁的初始状态。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000001</span> <span class="number">00000000</span></span><br></pre></td></tr></table></figure>
+
+<p>除了 ORIGIN 状态之外，节点还有 WAITING 状态和 CANCELLED 状态。</p>
+<h2 id="CLH-队列"><a href="#CLH-队列" class="headerlink" title="CLH 队列"></a>CLH 队列</h2><p>与 AQS 类似， StampedLock 内部也维护了一个 变体 CLH 队列。CLH 队列的节点元素由内部类 Node 表示。</p>
+<h3 id="Node"><a href="#Node" class="headerlink" title="Node"></a>Node</h3><p>Node 的数据结构也非常的简单。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Node</span> </span>&#123;</span><br><span class="line">    <span class="keyword">volatile</span> Node prev;       <span class="comment">// initially attached via casTail</span></span><br><span class="line">    <span class="keyword">volatile</span> Node next;       <span class="comment">// visibly nonnull when signallable</span></span><br><span class="line">    Thread waiter;            <span class="comment">// visibly nonnull when enqueued</span></span><br><span class="line">    <span class="keyword">volatile</span> <span class="keyword">int</span> status;      <span class="comment">// written by owner, atomic bit ops by others</span></span><br><span class="line">    <span class="comment">// ....</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>prev 指向队列中当前节点的前一个节点。</li>
+<li>next 指向队列中当前节点的后一个节点。</li>
+<li>waiter 引用指向当前节点绑定的线程。</li>
+<li>status 表示节点的状态，状态由上面的常量表示，一共有三种状态。</li>
+</ul>
+<h3 id="ReaderNode"><a href="#ReaderNode" class="headerlink" title="ReaderNode"></a>ReaderNode</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ReaderNode</span> <span class="keyword">extends</span> <span class="title">Node</span> </span>&#123; <span class="comment">// node for readers</span></span><br><span class="line">    <span class="keyword">volatile</span> ReaderNode cowaiters;           <span class="comment">// list of linked readers</span></span><br><span class="line">    <span class="comment">// ....</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ReaderNode 继承自 Node。内部维护了一个属性 cowaiters。指向由 ReaderNode 组成的队列中的下一个节点。ReaderNode 组成的队列是一个单向队列。</p>
+<h3 id="WriterNode"><a href="#WriterNode" class="headerlink" title="WriterNode"></a>WriterNode</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">WriterNode</span> <span class="keyword">extends</span> <span class="title">Node</span> </span>&#123; <span class="comment">// node for writers</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>WriterNode也继承自 Node，是一个空实现。</p>
+<h3 id="回到-CLH-队列"><a href="#回到-CLH-队列" class="headerlink" title="回到 CLH 队列"></a>回到 CLH 队列</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">transient</span> <span class="keyword">volatile</span> Node head;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">transient</span> <span class="keyword">volatile</span> Node tail;</span><br></pre></td></tr></table></figure>
+
+<p>既然是变体 CLH 队列，那么同样有 head 引用指向队列的头结点，tail 引用指向队列的尾结点。</p>
+<p>看完 StampedLock 中 CLH 队列的结构，可以说是和 AQS 中的队列特别像了。</p>
+<h2 id="View"><a href="#View" class="headerlink" title="View"></a>View</h2><p>StampedLock 中提供了三种 View，View 是暴露到外部的API，供外部使用。View 实现了 Lock 接口。</p>
+<h3 id="ReadLockView"><a href="#ReadLockView" class="headerlink" title="ReadLockView"></a>ReadLockView</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ReadLockView</span> <span class="keyword">implements</span> <span class="title">Lock</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        readLock();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">lockInterruptibly</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        readLockInterruptibly();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> tryReadLock() != <span class="number">0L</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">(<span class="keyword">long</span> time, TimeUnit unit)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> tryReadLock(time, unit) != <span class="number">0L</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unlock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        unstampedUnlockRead();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Condition <span class="title">newCondition</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> UnsupportedOperationException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ReadLockView 实现了 Lock 接口，具体的实现方法留到后续具体分析。这里需要注意一点，Lock 接口中提供默认的 newCondition 方法，ReadLockView 对该方法的实现则是抛出了一个 UnsupportedOperationException 异常。由此可见，ReadLockView 是不支持 条件等待 的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">readLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// unconditionally optimistically try non-overflow case once</span></span><br><span class="line">    <span class="keyword">long</span> s = U.getLongOpaque(<span class="keyword">this</span>, STATE) &amp; RSAFE, nextState;</span><br><span class="line">    <span class="keyword">if</span> (casState(s, nextState = s + RUNIT))</span><br><span class="line">        <span class="keyword">return</span> nextState;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">return</span> acquireRead(<span class="keyword">false</span>, <span class="keyword">false</span>, <span class="number">0L</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>readLock 方法是加读锁的方法。</p>
+<ol>
+<li>获取当前锁的 state。</li>
+<li>获取到的 state 与 RSAFE 进行了 与计算，并在后面通过 cas 尝试更新 state。从此处可以看到，在获取 readLock 的时候，只有当前 锁的 state 的值小于等于 00111111 时才能够获取到锁。</li>
+<li>如果通过 cas 获取失败，则通过调用 acquireRead 去尝试获取锁。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">readLockInterruptibly</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> nextState;</span><br><span class="line">    <span class="keyword">if</span> (!Thread.interrupted() &amp;&amp;</span><br><span class="line">        ((nextState = tryAcquireRead()) != <span class="number">0L</span> ||</span><br><span class="line">         (nextState = acquireRead(<span class="keyword">true</span>, <span class="keyword">false</span>, <span class="number">0L</span>)) != INTERRUPTED))</span><br><span class="line">        <span class="keyword">return</span> nextState;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>readLockInterruptibly 是可中断的获取读锁的方法。</p>
+<ol>
+<li>在执行获取逻辑之前需要检查中断。如果发生被中断，则直接抛出 IE。</li>
+<li>调用 tryAcquireRead 方法尝试获取读锁。如果获取成功则直接返回。如果获取失败则通过调用 acquireRead 去尝试获取锁。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">tryReadLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> tryAcquireRead();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>直接通过调用 tryAcquireRead 方法执行获取逻辑。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">tryReadLock</span><span class="params">(<span class="keyword">long</span> time, TimeUnit unit)</span></span></span><br><span class="line"><span class="function">    <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> nanos = unit.toNanos(time);</span><br><span class="line">    <span class="keyword">if</span> (!Thread.interrupted()) &#123;</span><br><span class="line">        <span class="keyword">long</span> nextState;</span><br><span class="line">        <span class="keyword">if</span> (tail == head &amp;&amp; (nextState = tryAcquireRead()) != <span class="number">0L</span>)</span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">        <span class="keyword">if</span> (nanos &lt;= <span class="number">0L</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">        nextState = acquireRead(<span class="keyword">true</span>, <span class="keyword">true</span>, System.nanoTime() + nanos);</span><br><span class="line">        <span class="keyword">if</span> (nextState != INTERRUPTED)</span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>带参数的 tryReadLock 方法，支持超时取消。</p>
+<ol>
+<li>同样在执行之前先检查中断。</li>
+<li>在队列未初始化或者队列为空的前提下，先调用 tryAcquireRead 尝试获取。获取成功则直接返回。</li>
+<li>如果传入的时间 &lt;= 0，则直接返回获取失败。</li>
+<li>调用 acquireRead 方法获取。参数中传入超时时间。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">unstampedUnlockRead</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> s, m;</span><br><span class="line">    <span class="keyword">while</span> ((m = (s = state) &amp; RBITS) &gt; <span class="number">0L</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (m &lt; RFULL) &#123;</span><br><span class="line">            <span class="keyword">if</span> (casState(s, s - RUNIT)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (m == RUNIT)</span><br><span class="line">                    signalNext(head);</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (tryDecReaderOverflow(s) != <span class="number">0L</span>)</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalMonitorStateException();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>释放读锁的方法。如方法名所示，该释放锁的方法并没有用到 stamp。</p>
+<ol>
+<li>首先获取读锁的个数，与读锁掩码进行与运算。</li>
+<li>判断读锁个数是否溢出。如果没有溢出，读锁 - 1。如果读锁已经全部释放，需要唤醒写锁等待队列中的节点。</li>
+<li>如果发生了溢出，则调用 tryDecReaderOverflow 方法进行释放锁。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tryUnlockRead</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> s, m;</span><br><span class="line">    <span class="keyword">while</span> ((m = (s = state) &amp; ABITS) != <span class="number">0L</span> &amp;&amp; m &lt; WBIT) &#123;</span><br><span class="line">        <span class="keyword">if</span> (m &lt; RFULL) &#123;</span><br><span class="line">            <span class="keyword">if</span> (casState(s, s - RUNIT)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (m == RUNIT)</span><br><span class="line">                    signalNext(head);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (tryDecReaderOverflow(s) != <span class="number">0L</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>while 判断里需要满足当前的 state 持有锁且持有的为读锁。</li>
+<li>如果读锁的个数未越界，则直接通过 cas 更新 state。</li>
+<li>如果读锁的个数越界，则调用 tryDecReaderOverflow 来更新锁的个数。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unlockRead</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> s, m;</span><br><span class="line">    <span class="keyword">if</span> ((stamp &amp; RBITS) != <span class="number">0L</span>) &#123;</span><br><span class="line">        <span class="keyword">while</span> (((s = state) &amp; SBITS) == (stamp &amp; SBITS) &amp;&amp;</span><br><span class="line">               ((m = s &amp; RBITS) != <span class="number">0L</span>)) &#123;</span><br><span class="line">            <span class="keyword">if</span> (m &lt; RFULL) &#123;</span><br><span class="line">                <span class="keyword">if</span> (casState(s, s - RUNIT)) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (m == RUNIT)</span><br><span class="line">                        signalNext(head);</span><br><span class="line">                    <span class="keyword">return</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (tryDecReaderOverflow(s) != <span class="number">0L</span>)</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalMonitorStateException();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该方法是一个乐观读锁释放锁的方法。</p>
+<ol>
+<li>首先判断是否存在读锁。</li>
+<li>通过检查之后释放读锁。</li>
+<li>释放的逻辑与 tryUnlockRead 方法一致。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">tryAcquireRead</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">long</span> s, m, nextState;;) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((m = (s = state) &amp; ABITS) &lt; RFULL) &#123;</span><br><span class="line">            <span class="keyword">if</span> (casState(s, nextState = s + RUNIT))</span><br><span class="line">                <span class="keyword">return</span> nextState;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (m == WBIT)</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> ((nextState = tryIncReaderOverflow(s)) != <span class="number">0L</span>)</span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>外面是一个无限循环。</li>
+<li>首先如果读锁的个数小于 RFULL ，则直接通过 cas 尝试获取。</li>
+<li>如果当前锁持有的是写锁，直接返回 0，获取失败。</li>
+<li>排除以上两种情况之后，只能是读锁的持有溢出了，因此尝试调用 tryIncReaderOverflow 获取读锁。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">tryIncReaderOverflow</span><span class="params">(<span class="keyword">long</span> s)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// assert (s &amp; ABITS) &gt;= RFULL;</span></span><br><span class="line">    <span class="keyword">if</span> ((s &amp; ABITS) != RFULL)</span><br><span class="line">        Thread.onSpinWait();</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (casState(s, s | RBITS)) &#123;</span><br><span class="line">        ++readerOverflow;</span><br><span class="line">        <span class="keyword">return</span> state = s;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>如果 state 不等于 RFULL，则自旋等待。为什么会出现 (s &amp; ABITS) != RFULL 呢？因为当出现并发获取读锁的时候，其他线程可能提前执行了 casState(s, s | RBITS)。因此，state 的值被更新为 RBITS。所以会在自旋等待之后返回 0 。因为外部调用是无效循环调用，因此会在下一次循环时重新尝试获取。</li>
+<li>如果传入的 s == RFULL，则尝试将 state 修改为 RBITS。并将 readerOverflow 自增。这里需要注意的是！！虽然 else if 判断中将 state 更新为了 RBITS，但是在 return 语句中，又将 state 赋值成了 s，也就是将 state 又赋值为了 RFULL。这个操作使得在并发操作下，其他线程也可以正常获取读锁。此外，这里还需要注意一点的就是 state 有那么一段时间的值是等于 RBITS 的。这个操作可以使得 readerOverflow 避免被并发修改，因此可以保证 readerOverflow 是正确更新的。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">tryDecReaderOverflow</span><span class="params">(<span class="keyword">long</span> s)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// assert (s &amp; ABITS) &gt;= RFULL;</span></span><br><span class="line">    <span class="keyword">if</span> ((s &amp; ABITS) != RFULL)</span><br><span class="line">        Thread.onSpinWait();</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (casState(s, s | RBITS)) &#123;</span><br><span class="line">        <span class="keyword">int</span> r; <span class="keyword">long</span> nextState;</span><br><span class="line">        <span class="keyword">if</span> ((r = readerOverflow) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            readerOverflow = r - <span class="number">1</span>;</span><br><span class="line">            nextState = s;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            nextState = s - RUNIT;</span><br><span class="line">        <span class="keyword">return</span> state = nextState;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>tryDecReaderOverflow 方法与 tryIncReaderOverflow 方法比较类似。同样通过 (s &amp; ABITS) != RFULL 条件来保证 readerOverflow 不会被并发修改。else if 中是主要的更新逻辑。</p>
+<ol>
+<li>如果 readerOverflow &gt; 0，则自减 1。并将 nextState 值赋为 RFULL。</li>
+<li>如果 readerOverflow == 0，则更新 nextState，nextState = s - 1。</li>
+<li>将 nextState 赋给 state，并返回 state。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">signalNext</span><span class="params">(Node h)</span> </span>&#123;</span><br><span class="line">    Node s;</span><br><span class="line">    <span class="keyword">if</span> (h != <span class="keyword">null</span> &amp;&amp; (s = h.next) != <span class="keyword">null</span> &amp;&amp; s.status &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        s.getAndUnsetStatus(WAITING);</span><br><span class="line">        LockSupport.unpark(s.waiter);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>signalNext 方法将指定节点的后继节点唤醒，将其 WAITING 状态撤销，并从 park 状态中唤醒。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">acquireRead</span><span class="params">(<span class="keyword">boolean</span> interruptible, <span class="keyword">boolean</span> timed, <span class="keyword">long</span> time)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">    ReaderNode node = <span class="keyword">null</span>;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Loop:</span></span><br><span class="line"><span class="comment">     *   if empty, try to acquire</span></span><br><span class="line"><span class="comment">     *   if tail is Reader, try to cowait; restart if leader stale or cancels</span></span><br><span class="line"><span class="comment">     *   else try to create and enqueue node, and wait in 2nd loop below</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        ReaderNode leader; <span class="keyword">long</span> nextState;</span><br><span class="line">        Node tailPred = <span class="keyword">null</span>, t = tail;</span><br><span class="line">        <span class="keyword">if</span> ((t == <span class="keyword">null</span> || (tailPred = t.prev) == <span class="keyword">null</span>) &amp;&amp;</span><br><span class="line">            (nextState = tryAcquireRead()) != <span class="number">0L</span>) <span class="comment">// try now if empty</span></span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (t == <span class="keyword">null</span>)</span><br><span class="line">            tryInitializeHead();</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (tailPred == <span class="keyword">null</span> || !(t <span class="keyword">instanceof</span> ReaderNode)) &#123;</span><br><span class="line">            <span class="keyword">if</span> (node == <span class="keyword">null</span>)</span><br><span class="line">                node = <span class="keyword">new</span> ReaderNode();</span><br><span class="line">            <span class="keyword">if</span> (tail == t) &#123;</span><br><span class="line">                node.setPrevRelaxed(t);</span><br><span class="line">                <span class="keyword">if</span> (casTail(t, node)) &#123;</span><br><span class="line">                    t.next = node;</span><br><span class="line">                    <span class="keyword">break</span>; <span class="comment">// node is leader; wait in loop below</span></span><br><span class="line">                &#125;</span><br><span class="line">                node.setPrevRelaxed(<span class="keyword">null</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((leader = (ReaderNode)t) == tail) &#123; <span class="comment">// try to cowait</span></span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">boolean</span> attached = <span class="keyword">false</span>;;) &#123;</span><br><span class="line">                <span class="keyword">if</span> (leader.status &lt; <span class="number">0</span> || leader.prev == <span class="keyword">null</span>)</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (node == <span class="keyword">null</span>)</span><br><span class="line">                    node = <span class="keyword">new</span> ReaderNode();</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (node.waiter == <span class="keyword">null</span>)</span><br><span class="line">                    node.waiter = Thread.currentThread();</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (!attached) &#123;</span><br><span class="line">                    ReaderNode c = leader.cowaiters;</span><br><span class="line">                    node.setCowaitersRelaxed(c);</span><br><span class="line">                    attached = leader.casCowaiters(c, node);</span><br><span class="line">                    <span class="keyword">if</span> (!attached)</span><br><span class="line">                        node.setCowaitersRelaxed(<span class="keyword">null</span>);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="keyword">long</span> nanos = <span class="number">0L</span>;</span><br><span class="line">                    <span class="keyword">if</span> (!timed)</span><br><span class="line">                        LockSupport.park(<span class="keyword">this</span>);</span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> ((nanos = time - System.nanoTime()) &gt; <span class="number">0L</span>)</span><br><span class="line">                        LockSupport.parkNanos(<span class="keyword">this</span>, nanos);</span><br><span class="line">                    interrupted |= Thread.interrupted();</span><br><span class="line">                    <span class="keyword">if</span> ((interrupted &amp;&amp; interruptible) ||</span><br><span class="line">                        (timed &amp;&amp; nanos &lt;= <span class="number">0L</span>))</span><br><span class="line">                        <span class="keyword">return</span> cancelCowaiter(node, leader, interrupted);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (node != <span class="keyword">null</span>)</span><br><span class="line">                node.waiter = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">long</span> ns = tryAcquireRead();</span><br><span class="line">            signalCowaiters(leader);</span><br><span class="line">            <span class="keyword">if</span> (interrupted)</span><br><span class="line">                Thread.currentThread().interrupt();</span><br><span class="line">            <span class="keyword">if</span> (ns != <span class="number">0L</span>)</span><br><span class="line">                <span class="keyword">return</span> ns;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                node = <span class="keyword">null</span>; <span class="comment">// restart if stale, missed, or leader CANCELLED</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// node is leader of a cowait group; almost same as acquireWrite</span></span><br><span class="line">    <span class="keyword">byte</span> spins = <span class="number">0</span>, postSpins = <span class="number">0</span>;   <span class="comment">// retries upon unpark of first thread</span></span><br><span class="line">    <span class="keyword">boolean</span> first = <span class="keyword">false</span>;</span><br><span class="line">    Node pred = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">long</span> nextState;;) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!first &amp;&amp; (pred = node.prev) != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">            !(first = (head == pred))) &#123;</span><br><span class="line">            <span class="keyword">if</span> (pred.status &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                cleanQueue();           <span class="comment">// predecessor CANCELLED</span></span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (pred.prev == <span class="keyword">null</span>) &#123;</span><br><span class="line">                Thread.onSpinWait();    <span class="comment">// ensure serialization</span></span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> ((first || pred == <span class="keyword">null</span>) &amp;&amp;</span><br><span class="line">            (nextState = tryAcquireRead()) != <span class="number">0L</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (first) &#123;</span><br><span class="line">                node.prev = <span class="keyword">null</span>;</span><br><span class="line">                head = node;</span><br><span class="line">                pred.next = <span class="keyword">null</span>;</span><br><span class="line">                node.waiter = <span class="keyword">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            signalCowaiters(node);</span><br><span class="line">            <span class="keyword">if</span> (interrupted)</span><br><span class="line">                Thread.currentThread().interrupt();</span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (first &amp;&amp; spins != <span class="number">0</span>) &#123;</span><br><span class="line">            --spins;</span><br><span class="line">            Thread.onSpinWait();</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (node.status == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (node.waiter == <span class="keyword">null</span>)</span><br><span class="line">                node.waiter = Thread.currentThread();</span><br><span class="line">            node.status = WAITING;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">long</span> nanos;</span><br><span class="line">            spins = postSpins = (<span class="keyword">byte</span>)((postSpins &lt;&lt; <span class="number">1</span>) | <span class="number">1</span>);</span><br><span class="line">            <span class="keyword">if</span> (!timed)</span><br><span class="line">                LockSupport.park(<span class="keyword">this</span>);</span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> ((nanos = time - System.nanoTime()) &gt; <span class="number">0L</span>)</span><br><span class="line">                LockSupport.parkNanos(<span class="keyword">this</span>, nanos);</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            node.clearStatus();</span><br><span class="line">            <span class="keyword">if</span> ((interrupted |= Thread.interrupted()) &amp;&amp; interruptible)</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> cancelAcquire(node, interrupted);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>acquireRead 方法类似于 AQS 中的 acquire 方法，是读锁中最重要的获取方法。</p>
+<ul>
+<li>if ((t == null || (tailPred = t.prev) == null) &amp;&amp; (nextState = tryAcquireRead()) != 0L)。如果队列未初始化或者队列中只有一个 head 节点，则调用 tryAcquireRead 尝试快速获取。获取成功则直接返回。</li>
+<li>else if (t == null)。上述没有成功获取到锁。如果队列未初始化，则初始化队列。</li>
+<li>else if (tailPred == null || !(t instanceof ReaderNode))。如果队列中只有一个 head 节点，或者该 tail 节点的类型不是 ReaderNode 类型。说明节点需要入队等待获取。</li>
+<li>else if ((leader = (ReaderNode) t) == tail)。如果队尾是 ReaderNode 类型的节点。说明当前要入队的节点不可能成为 leader 节点。需要在 cowaiters 队列中等待。<ul>
+<li>如果 leader 节点被取消或者 leader 节点成为 head 节点，则直接跳出循环。</li>
+<li>如果当前准备入队节点未初始化，则初始化并设置其属性。</li>
+<li>将 node attach 到当前队列的 leader 节点维护的 stack 上。当前队列的 leader 节点维护一个 stack。这个 stack 中专用于连接 ReaderNode。</li>
+<li>如果已经 attach 到 leader 节点上，相当于已经入队了。检查是否设置超时获取，如果未设置，则直接 park。如果设置了，则 park 指定的时间。从 park 中唤醒后，检查中断。如果 1) 中断了且支持中断取消 或者 2) 超时了还未获取到，则调用 cancelCowaiter 取消获取。</li>
+<li>如果从 for 循环中跳出。说明 leader 节点被取消了，或者 leader 节点成为了 head 节点。这两个动作都会导致同一个结果，那就是当前节点 node 会被唤醒，然后尝试去获取。</li>
+<li>如果再次尝试获取失败，则全部流程都再执行一遍。</li>
+</ul>
+</li>
+<li>如果当前节点 node 成为了 leader 节点，那么会从 for 循环中跳出，执行与 acquireWrite 相同的逻辑。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">cancelCowaiter</span><span class="params">(ReaderNode node, ReaderNode leader,</span></span></span><br><span class="line"><span class="function"><span class="params">                            <span class="keyword">boolean</span> interrupted)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (node != <span class="keyword">null</span>) &#123;</span><br><span class="line">        node.waiter = <span class="keyword">null</span>;</span><br><span class="line">        node.status = CANCELLED;</span><br><span class="line">        unlinkCowaiter(node, leader);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> (interrupted || Thread.interrupted()) ? INTERRUPTED : <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>cancelCowaiter 方法更新 node 节点的属性。并调用 unlinkCowaiter 方法将 node 节点从 leader 维护的 stack 中移除。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unlinkCowaiter</span><span class="params">(ReaderNode node, ReaderNode leader)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (leader != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">while</span> (leader.prev != <span class="keyword">null</span> &amp;&amp; leader.status &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">for</span> (ReaderNode p = leader, q; ; p = q) &#123;</span><br><span class="line">                <span class="keyword">if</span> ((q = p.cowaiters) == <span class="keyword">null</span>)</span><br><span class="line">                    <span class="keyword">return</span>;</span><br><span class="line">                <span class="keyword">if</span> (q == node) &#123;</span><br><span class="line">                    p.casCowaiters(q, q.cowaiters);</span><br><span class="line">                    <span class="keyword">break</span>;  <span class="comment">// recheck even if succeeded</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>while 条件内要确保 leader 节点未获取到锁(也就是非 head 节点)且 leader 节点未被 CANCELLED。</li>
+<li>leader 节点维护了一个 FILO 的队列(也可以理解为是一个 stack)，从头开始遍历。将找到的目标节点从 FILO 队列中移除。找到之后 break 当前循环。再次遍历一遍，相当于是做了一个 check。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">signalCowaiters</span><span class="params">(ReaderNode node)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (node != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (ReaderNode c; (c = node.cowaiters) != <span class="keyword">null</span>; ) &#123;</span><br><span class="line">            <span class="keyword">if</span> (node.casCowaiters(c, c.cowaiters))</span><br><span class="line">                LockSupport.unpark(c.waiter);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>signalCowaiters 方法唤醒 node 节点维护的所有的 ReaderNode 节点。</p>
+<h3 id="WriteLockView"><a href="#WriteLockView" class="headerlink" title="WriteLockView"></a>WriteLockView</h3><p>WriteLockView 和 ReadLockView 的方法基本上一一对应的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">WriteLockView</span> <span class="keyword">implements</span> <span class="title">Lock</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">lock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        writeLock();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">lockInterruptibly</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        writeLockInterruptibly();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> tryWriteLock() != <span class="number">0L</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">(<span class="keyword">long</span> time, TimeUnit unit)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> tryWriteLock(time, unit) != <span class="number">0L</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unlock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        unstampedUnlockWrite();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Condition <span class="title">newCondition</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> UnsupportedOperationException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>与 ReadLockView 类似，WriteLockView 也不支持条件等待。其他方法同样留到后续分析。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">writeLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// try unconditional CAS confirming weak read</span></span><br><span class="line">    <span class="keyword">long</span> s = U.getLongOpaque(<span class="keyword">this</span>, STATE) &amp; ~ABITS, nextState;</span><br><span class="line">    <span class="keyword">if</span> (casState(s, nextState = s | WBIT)) &#123;</span><br><span class="line">        U.storeStoreFence();</span><br><span class="line">        <span class="keyword">return</span> nextState;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> acquireWrite(<span class="keyword">false</span>, <span class="keyword">false</span>, <span class="number">0L</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>写锁的获取方法。</p>
+<ol>
+<li>获取当前的 state 并与 ~ABITS 求与运算。计算得到的 s 应该为 0，也就是无论读锁还是写锁都未被持有。</li>
+<li>根据计算得到的 s 通过 cas 将 state 更新为 s | WBIT 。</li>
+<li>如果 cas 获取锁失败，则通过调用 acquireWrite 方法获取。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">writeLockInterruptibly</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> nextState;</span><br><span class="line">    <span class="keyword">if</span> (!Thread.interrupted() &amp;&amp;</span><br><span class="line">        ((nextState = tryAcquireWrite()) != <span class="number">0L</span> ||</span><br><span class="line">         (nextState = acquireWrite(<span class="keyword">true</span>, <span class="keyword">false</span>, <span class="number">0L</span>)) != INTERRUPTED))</span><br><span class="line">        <span class="keyword">return</span> nextState;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可响应中断的获取写锁方法。</p>
+<ol>
+<li>执行获取写锁之前检查中断状态。</li>
+<li>调用 tryAcquireWrite 方法尝试获取 写锁。</li>
+<li>tryAcquireWrite 获取失败，则调用 acquireWrite 方法尝试获取。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">tryWriteLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> tryAcquireWrite();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过调用 tryAcquireWrite 尝试获取锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">tryWriteLock</span><span class="params">(<span class="keyword">long</span> time, TimeUnit unit)</span></span></span><br><span class="line"><span class="function">    <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> nanos = unit.toNanos(time);</span><br><span class="line">    <span class="keyword">if</span> (!Thread.interrupted()) &#123;</span><br><span class="line">        <span class="keyword">long</span> nextState;</span><br><span class="line">        <span class="keyword">if</span> ((nextState = tryAcquireWrite()) != <span class="number">0L</span>)</span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">        <span class="keyword">if</span> (nanos &lt;= <span class="number">0L</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">        nextState = acquireWrite(<span class="keyword">true</span>, <span class="keyword">true</span>, System.nanoTime() + nanos);</span><br><span class="line">        <span class="keyword">if</span> (nextState != INTERRUPTED)</span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>带参数的 tryWriteLock 方法。</p>
+<ol>
+<li>先检查中断。</li>
+<li>调用 tryAcquireWrite 尝试获取锁。</li>
+<li>如果传入的时间参数 &lt;= 0，则获取失败。</li>
+<li>调用 acquireWrite 获取写锁。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">unstampedUnlockWrite</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> s;</span><br><span class="line">    <span class="keyword">if</span> (((s = state) &amp; WBIT) == <span class="number">0L</span>)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalMonitorStateException();</span><br><span class="line">    releaseWrite(s);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先检查 state 的状态是否正确，如果不是 WBIT，则抛出异常。随后调用 releaseWrite 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tryUnlockWrite</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> s;</span><br><span class="line">    <span class="keyword">if</span> (((s = state) &amp; WBIT) != <span class="number">0L</span>) &#123;</span><br><span class="line">        releaseWrite(s);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>如果当前 state 表示持有写锁，则调用 releaseWrite 方法释放锁。</li>
+<li>否则返回 false。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unlockWrite</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (state != stamp || (stamp &amp; WBIT) == <span class="number">0L</span>)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalMonitorStateException();</span><br><span class="line">    releaseWrite(stamp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>unlockWrite 方法需要先验证 stamp 是否与 state 相等。如果不相等，则抛出异常。</li>
+<li>检查是否持有写锁，如果未持有写锁，也会抛出异常。</li>
+<li>检查通过之后调用 releaseWrite 方法释放写锁。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">tryAcquireWrite</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> s, nextState;</span><br><span class="line">    <span class="comment">// 如果当前的 state 为 ORIGIN = 256 &amp;&amp; 成功将 state 修改为  s | WBIT</span></span><br><span class="line">    <span class="comment">// 如果上述条件都满足，则表示获取到 write</span></span><br><span class="line">    <span class="comment">// 能获取 write 的前提是当前的 state 为 ORIGIN</span></span><br><span class="line">    <span class="keyword">if</span> (((s = state) &amp; ABITS) == <span class="number">0L</span> &amp;&amp; casState(s, nextState = s | WBIT)) &#123;</span><br><span class="line">        U.storeStoreFence();</span><br><span class="line">        <span class="keyword">return</span> nextState;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>tryAcquireWrite 方法是一个快速尝试获取写锁的方法。前提是当前锁并没有被任何线程持有。如果通过 cas 更新 state 成功，则说明获取写锁成功。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">releaseWrite</span><span class="params">(<span class="keyword">long</span> s)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> nextState = state = unlockWriteState(s);</span><br><span class="line">    signalNext(head);</span><br><span class="line">    <span class="keyword">return</span> nextState;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>releaseWrite 方法中一共分为了两步，第一步为 unlockWriteState ，第二步为 signalNext 。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">long</span> <span class="title">unlockWriteState</span><span class="params">(<span class="keyword">long</span> s)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ((s += WBIT) == <span class="number">0L</span>) ? ORIGIN : s;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>返回一个无锁的 state。但是为什么 s += WBIT == 0 ？还没搞明白。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">acquireWrite</span><span class="params">(<span class="keyword">boolean</span> interruptible, <span class="keyword">boolean</span> timed, <span class="keyword">long</span> time)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">byte</span> spins = <span class="number">0</span>, postSpins = <span class="number">0</span>;   <span class="comment">// retries upon unpark of first thread</span></span><br><span class="line">    <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>, first = <span class="keyword">false</span>;</span><br><span class="line">    WriterNode node = <span class="keyword">null</span>;</span><br><span class="line">    Node pred = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">long</span> s, nextState;;) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!first &amp;&amp; (pred = (node == <span class="keyword">null</span>) ? <span class="keyword">null</span> : node.prev) != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">            !(first = (head == pred))) &#123;</span><br><span class="line">            <span class="keyword">if</span> (pred.status &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                cleanQueue();           <span class="comment">// predecessor CANCELLED</span></span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (pred.prev == <span class="keyword">null</span>) &#123;</span><br><span class="line">                Thread.onSpinWait();    <span class="comment">// ensure serialization</span></span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> ((first || pred == <span class="keyword">null</span>) &amp;&amp; ((s = state) &amp; ABITS) == <span class="number">0L</span> &amp;&amp;</span><br><span class="line">            casState(s, nextState = s | WBIT)) &#123;</span><br><span class="line">            U.storeStoreFence();</span><br><span class="line">            <span class="keyword">if</span> (first) &#123;</span><br><span class="line">                node.prev = <span class="keyword">null</span>;</span><br><span class="line">                head = node;</span><br><span class="line">                pred.next = <span class="keyword">null</span>;</span><br><span class="line">                node.waiter = <span class="keyword">null</span>;</span><br><span class="line">                <span class="keyword">if</span> (interrupted)</span><br><span class="line">                    Thread.currentThread().interrupt();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (node == <span class="keyword">null</span>) &#123;          <span class="comment">// retry before enqueuing</span></span><br><span class="line">            node = <span class="keyword">new</span> WriterNode();</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (pred == <span class="keyword">null</span>) &#123;          <span class="comment">// try to enqueue</span></span><br><span class="line">            Node t = tail;</span><br><span class="line">            node.setPrevRelaxed(t);</span><br><span class="line">            <span class="keyword">if</span> (t == <span class="keyword">null</span>)</span><br><span class="line">                tryInitializeHead();</span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (!casTail(t, node))</span><br><span class="line">                node.setPrevRelaxed(<span class="keyword">null</span>);  <span class="comment">// back out</span></span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                t.next = node;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (first &amp;&amp; spins != <span class="number">0</span>) &#123;   <span class="comment">// reduce unfairness</span></span><br><span class="line">            --spins;</span><br><span class="line">            Thread.onSpinWait();</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (node.status == <span class="number">0</span>) &#123;      <span class="comment">// enable signal</span></span><br><span class="line">            <span class="keyword">if</span> (node.waiter == <span class="keyword">null</span>)</span><br><span class="line">                node.waiter = Thread.currentThread();</span><br><span class="line">            node.status = WAITING;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">long</span> nanos;</span><br><span class="line">            spins = postSpins = (<span class="keyword">byte</span>)((postSpins &lt;&lt; <span class="number">1</span>) | <span class="number">1</span>);</span><br><span class="line">            <span class="keyword">if</span> (!timed)</span><br><span class="line">                LockSupport.park(<span class="keyword">this</span>);</span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> ((nanos = time - System.nanoTime()) &gt; <span class="number">0L</span>)</span><br><span class="line">                LockSupport.parkNanos(<span class="keyword">this</span>, nanos);</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            node.clearStatus();</span><br><span class="line">            <span class="keyword">if</span> ((interrupted |= Thread.interrupted()) &amp;&amp; interruptible)</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> cancelAcquire(node, interrupted);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>acquireWrite 方法同样也是写锁中最重要的方法。该方法的主要作用是获取写锁。重点在 for 循环中。</p>
+<ol>
+<li>if (!first &amp;&amp; (pred = (node == null) ? null : node.prev) != null &amp;&amp; !(first = (head == pred)))。当满足 1) node 节点的前驱节点 pred 不为 head 节点 2) pred 不为 null 时，则进入该逻辑。内部逻辑检查 pred 节点是否被 CANCELLED，如果被 CANCELLED，则执行 cleanQueue 逻辑。如果 pred 的前驱节点为 head 节点，(并发的情况下会出现)，则自旋等待，重新开始循环。</li>
+<li>if ((first || pred == null) &amp;&amp; ((s = state) &amp; ABITS) == 0L &amp;&amp; casState(s, nextState = s | WBIT))。满足该判断条件的话表示获取写锁成功。</li>
+<li>else if (node == null)。节点还未初始化，则初始化一个 WriterNode。</li>
+<li>else if (pred == null)。经过上面的判断之后，说明获取锁失败(可能是其他线程持有了写锁，也可能是其他线程持有了读锁)，且节点已经初始化完成，走到该逻辑则进行入队。</li>
+<li>else if (first &amp;&amp; spins != 0)。如果 node 的前驱节点是 head 节点且自旋次数不为 0。则进行自旋等待。因为可能持有锁的线程马上就要释放锁了。</li>
+<li>else if (node.status == 0)。如果 node 的状态为 0。也就是说，node 处于初始化之后的状态，属性还没有被设置。则设置 node 的属性，包括设置绑定线程以及设置状态位 WAITING。</li>
+<li>最后一个 else，说明都不满足以上的条件。计算自旋的次数。自旋次数的递增规律为 (byte) ((postSpins &lt;&lt; 1) | 1)。如果未设置了超时获取，则直接 park。如果设置了超时获取，则调用带有超时时间的 park。带有超时阻塞的获取锁方法，在超时之后，会调用 cancelAcquire 方法取消获取。没有带超时获取的获取方法，会一直阻塞，直到被 signal 唤醒，或者被中断唤醒。如果该获取是支持中断取消获取的，如果被中断唤醒，则直接跳出循环，调用 cancelAcquire 方法取消获取。否则进入下一轮循环，尝试获取锁。下一轮循环有可能获取失败，因为可能被抢占，获取失败之后 spin 的次数就开始发挥作用了。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">cancelAcquire</span><span class="params">(Node node, <span class="keyword">boolean</span> interrupted)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (node != <span class="keyword">null</span>) &#123;</span><br><span class="line">        node.waiter = <span class="keyword">null</span>;</span><br><span class="line">        node.status = CANCELLED;</span><br><span class="line">        cleanQueue();</span><br><span class="line">        <span class="keyword">if</span> (node <span class="keyword">instanceof</span> ReaderNode)</span><br><span class="line">            signalCowaiters((ReaderNode)node);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> (interrupted || Thread.interrupted()) ? INTERRUPTED : <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>获取方法中有一个 cancelAcquire 的方法，cancelAcquire 方法将 node 节点的状态清除，并将 node 的 status 置为 CANCELLED。然后调用 cleanQueue 方法清理队列。清理队列之后，还有一段逻辑是判断 node 类型是否为 ReaderNode 。如果是 ReaderNode 类型，则需要唤醒其后继的节点。因为如果该 ReaderNode 节点是 leader 节点，后续可能还跟着很多的 ReaderNode 节点，需要将其后续的节点唤醒。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">cleanQueue</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;                               <span class="comment">// restart point</span></span><br><span class="line">        <span class="keyword">for</span> (Node q = tail, s = <span class="keyword">null</span>, p, n;;) &#123; <span class="comment">// (p, q, s) triples</span></span><br><span class="line">            <span class="keyword">if</span> (q == <span class="keyword">null</span> || (p = q.prev) == <span class="keyword">null</span>)</span><br><span class="line">                <span class="keyword">return</span>;                      <span class="comment">// end of list</span></span><br><span class="line">            <span class="keyword">if</span> (s == <span class="keyword">null</span> ? tail != q : (s.prev != q || s.status &lt; <span class="number">0</span>))</span><br><span class="line">                <span class="keyword">break</span>;                       <span class="comment">// inconsistent</span></span><br><span class="line">            <span class="keyword">if</span> (q.status &lt; <span class="number">0</span>) &#123;              <span class="comment">// CANCELLED</span></span><br><span class="line">                <span class="keyword">if</span> ((s == <span class="keyword">null</span> ? casTail(q, p) : s.casPrev(q, p)) &amp;&amp;</span><br><span class="line">                    q.prev == p) &#123;</span><br><span class="line">                    p.casNext(q, s);         <span class="comment">// OK if fails</span></span><br><span class="line">                    <span class="keyword">if</span> (p.prev == <span class="keyword">null</span>)</span><br><span class="line">                        signalNext(p);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> ((n = p.next) != q) &#123;         <span class="comment">// help finish</span></span><br><span class="line">                <span class="keyword">if</span> (n != <span class="keyword">null</span> &amp;&amp; q.prev == p &amp;&amp; q.status &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                    p.casNext(n, q);</span><br><span class="line">                    <span class="keyword">if</span> (p.prev == <span class="keyword">null</span>)</span><br><span class="line">                        signalNext(p);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            s = q;</span><br><span class="line">            q = q.prev;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>清理队列的方法，从 tail 往前遍历寻找，找到 CANCELLED 的节点，则将其从队列中移除。调用一次 cleanQueue 方法会将队列中所有的 CANCELLED 节点都移除。</p>
+<h3 id="ReadWriteLockView"><a href="#ReadWriteLockView" class="headerlink" title="ReadWriteLockView"></a>ReadWriteLockView</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ReadWriteLockView</span> <span class="keyword">implements</span> <span class="title">ReadWriteLock</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Lock <span class="title">readLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> asReadLock();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Lock <span class="title">writeLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> asWriteLock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ReadWriteLockView 与 WriteLockView 和 ReadLockView 不太相同，ReadWriteLockView 实现的不是 Lock 接口，而是实现了 ReadWriteLock 接口。ReentrantReadWriteLock 类也实现了该接口。接口中只定义了两个方法。ReadWriteLockView 类对这两个方法的具体实现同样也留到后续分析。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Lock <span class="title">asReadLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ReadLockView v;</span><br><span class="line">    <span class="keyword">if</span> ((v = readLockView) != <span class="keyword">null</span>) <span class="keyword">return</span> v;</span><br><span class="line">    <span class="keyword">return</span> readLockView = <span class="keyword">new</span> ReadLockView();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> Lock <span class="title">asWriteLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    WriteLockView v;</span><br><span class="line">    <span class="keyword">if</span> ((v = writeLockView) != <span class="keyword">null</span>) <span class="keyword">return</span> v;</span><br><span class="line">    <span class="keyword">return</span> writeLockView = <span class="keyword">new</span> WriteLockView();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>asReadLock 方法和 asWriteLock 方法返回一个 ReadLockView 或者 WriteLockView 的实例。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> ReadWriteLock <span class="title">asReadWriteLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ReadWriteLockView v;</span><br><span class="line">    <span class="keyword">if</span> ((v = readWriteLockView) != <span class="keyword">null</span>) <span class="keyword">return</span> v;</span><br><span class="line">    <span class="keyword">return</span> readWriteLockView = <span class="keyword">new</span> ReadWriteLockView();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>除了对外暴露读锁，写锁之外。还提供了 asReadWriteLock 方法向外暴露读写锁。</p>
+<h2 id="乐观读"><a href="#乐观读" class="headerlink" title="乐观读"></a>乐观读</h2><p>乐观读不同于读写锁的同步方法，在性能上会优于读写锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">tryOptimisticRead</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> s;</span><br><span class="line">    <span class="keyword">return</span> (((s = state) &amp; WBIT) == <span class="number">0L</span>) ? (s &amp; SBITS) : <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>tryOptimisticRead 方法尝试获取乐观读锁。</p>
+<ol>
+<li>先检查是否持有写锁。如果持有写锁，则返回一个值为 0 的 stamp。</li>
+<li>若未持有写锁，则返回一个 特殊计算的 stamp，stamp = s &amp; SBITS。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">validate</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    U.loadFence();</span><br><span class="line">    <span class="keyword">return</span> (stamp &amp; SBITS) == (state &amp; SBITS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>验证方法返回一个结果。该结果表示从上次调用 tryOptimisticRead 方法获取到的 stamp 值到调用 validate 方法期间是否有写锁被获取。</p>
+<h2 id="模式转换"><a href="#模式转换" class="headerlink" title="模式转换"></a>模式转换</h2><p>以下三个转换方法都将返回一个目标锁类型的 stamp 值。</p>
+<h3 id="tryConvertToWriteLock"><a href="#tryConvertToWriteLock" class="headerlink" title="tryConvertToWriteLock"></a>tryConvertToWriteLock</h3><p>尝试锁升级，只有在三种情况下可以完成转换。该方法仅仅能够帮助转换代表锁的 stamp。</p>
+<ol>
+<li>原来就是就处于写模式。</li>
+<li>当前处于读模式，并且没有其他线程共享读。</li>
+<li>处于乐观读模式且锁未被持有。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">tryConvertToWriteLock</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> a = stamp &amp; ABITS, m, s, nextState;</span><br><span class="line">    <span class="keyword">while</span> (((s = state) &amp; SBITS) == (stamp &amp; SBITS)) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((m = s &amp; ABITS) == <span class="number">0L</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (a != <span class="number">0L</span>)</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">if</span> (casState(s, nextState = s | WBIT)) &#123;</span><br><span class="line">                U.storeStoreFence();</span><br><span class="line">                <span class="keyword">return</span> nextState;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (m == WBIT) &#123;</span><br><span class="line">            <span class="keyword">if</span> (a != m)</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">return</span> stamp;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (m == RUNIT &amp;&amp; a != <span class="number">0L</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (casState(s, nextState = s - RUNIT + WBIT))</span><br><span class="line">                <span class="keyword">return</span> nextState;</span><br><span class="line">        &#125; <span class="keyword">else</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结合代码分析。</p>
+<ol>
+<li>while 判断当前的 stamp 未被修改。这里的 stamp 根据不同的转换源有不同的含义。比如转换源处于读模式或者写模式，那么就是当前的 state。如果之前处于乐观读模式，那么就是调用 tryOptimisticRead 方法返回的结果。</li>
+<li>if ((m = s &amp; ABITS) == 0L)。满足该条件则表示当前处于无锁状态。直接返回一个写锁的 stamp。</li>
+<li>else if (m == WBIT)。原来就持有写锁，不对 stamp 做修改。</li>
+<li>else if (m == RUNIT &amp;&amp; a != 0L)。仅有一个线程出游读锁，则释放读锁，并返回一个写锁的 stamp。</li>
+</ol>
+<h3 id="tryConvertToReadLock"><a href="#tryConvertToReadLock" class="headerlink" title="tryConvertToReadLock"></a>tryConvertToReadLock</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">tryConvertToReadLock</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> a, s, nextState;</span><br><span class="line">    <span class="keyword">while</span> (((s = state) &amp; SBITS) == (stamp &amp; SBITS)) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((a = stamp &amp; ABITS) &gt;= WBIT) &#123;</span><br><span class="line">            <span class="keyword">if</span> (s != stamp) <span class="comment">// write stamp</span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            nextState = state = unlockWriteState(s) + RUNIT;</span><br><span class="line">            signalNext(head);</span><br><span class="line">            <span class="keyword">return</span> nextState;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (a == <span class="number">0L</span>) &#123; <span class="comment">// optimistic read stamp</span></span><br><span class="line">            <span class="keyword">if</span> ((s &amp; ABITS) &lt; RFULL) &#123;</span><br><span class="line">                <span class="keyword">if</span> (casState(s, nextState = s + RUNIT))</span><br><span class="line">                    <span class="keyword">return</span> nextState;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((nextState = tryIncReaderOverflow(s)) != <span class="number">0L</span>)</span><br><span class="line">                <span class="keyword">return</span> nextState;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123; <span class="comment">// already a read stamp</span></span><br><span class="line">            <span class="keyword">if</span> ((s &amp; ABITS) == <span class="number">0L</span>)</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">return</span> stamp;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>尝试将锁转换成 ReadLock。有以下几种情况会发生转换。</p>
+<ol>
+<li>当持有一个写锁时，通过释放写锁后获取一个读锁。</li>
+<li>当前就是持有读锁，直接返回。</li>
+<li>当前处于乐观读模式。</li>
+</ol>
+<h3 id="tryConvertToOptimisticRead"><a href="#tryConvertToOptimisticRead" class="headerlink" title="tryConvertToOptimisticRead"></a>tryConvertToOptimisticRead</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">tryConvertToOptimisticRead</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> a, m, s, nextState;</span><br><span class="line">    U.loadFence();</span><br><span class="line">    <span class="keyword">while</span> (((s = state) &amp; SBITS) == (stamp &amp; SBITS)) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((a = stamp &amp; ABITS) &gt;= WBIT) &#123;</span><br><span class="line">            <span class="keyword">if</span> (s != stamp)   <span class="comment">// write stamp</span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">return</span> releaseWrite(s);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (a == <span class="number">0L</span>) &#123; <span class="comment">// already an optimistic read stamp</span></span><br><span class="line">            <span class="keyword">return</span> stamp;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((m = s &amp; ABITS) == <span class="number">0L</span>) &#123; <span class="comment">// invalid read stamp</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (m &lt; RFULL) &#123;</span><br><span class="line">            <span class="keyword">if</span> (casState(s, nextState = s - RUNIT)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (m == RUNIT)</span><br><span class="line">                    signalNext(head);</span><br><span class="line">                <span class="keyword">return</span> nextState &amp; SBITS;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((nextState = tryDecReaderOverflow(s)) != <span class="number">0L</span>)</span><br><span class="line">            <span class="keyword">return</span> nextState &amp; SBITS;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>如果持有写锁，则释放写锁，返回释放之后的 state 值。</li>
+<li>如果持有读锁，返回释放一个读锁之后的乐观读 stamp。</li>
+</ol>
+<h2 id="锁状态方法"><a href="#锁状态方法" class="headerlink" title="锁状态方法"></a>锁状态方法</h2><p>该类方法一般是一些辅助方法，获取锁状态的一些信息。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getReadLockCount</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> getReadLockCount(state);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">getReadLockCount</span><span class="params">(<span class="keyword">long</span> s)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> readers;</span><br><span class="line">    <span class="keyword">if</span> ((readers = s &amp; RBITS) &gt;= RFULL)</span><br><span class="line">        readers = RFULL + readerOverflow;</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">int</span>) readers;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>返回读锁的持有个数。如果读锁计数溢出，那么读锁的个数为 RFULL + readerOverflow。否则读锁的个数为 s &amp; RBITS。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isLockStamp</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (stamp &amp; ABITS) != <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>isLockStamp 方法返回 stamp 是否持有锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isOptimisticReadStamp</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (stamp &amp; ABITS) == <span class="number">0L</span> &amp;&amp; stamp != <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>isOptimisticReadStamp 方法返回 stamp 是否代表一个乐观读锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isReadLocked</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (state &amp; RBITS) != <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>isReadLocked 方法返回当前的锁状态是否为持有读锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isWriteLocked</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (state &amp; WBIT) != <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>isWriteLocked 方法返回当前的锁状态是否为持有写锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isReadLockStamp</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (stamp &amp; RBITS) != <span class="number">0L</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>isReadLockStamp 方法返回 stamp 是否代表持有一个读锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isWriteLockStamp</span><span class="params">(<span class="keyword">long</span> stamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (stamp &amp; ABITS) == WBIT;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>isWriteLockStamp 方法返回 stamp 是否代表持有一个写锁。</p>
+<h2 id="Best-Practice"><a href="#Best-Practice" class="headerlink" title="Best Practice"></a>Best Practice</h2><h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/05/ReentrantLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="prev" title="ReentrantLock 源码全解析">
+      <i class="fa fa-chevron-left"></i> ReentrantLock 源码全解析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="next" title="ThreadLocal 源码全解析">
+      ThreadLocal 源码全解析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E9%87%8F"><span class="nav-number">1.</span> <span class="nav-text">常量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CLH-%E9%98%9F%E5%88%97"><span class="nav-number">2.</span> <span class="nav-text">CLH 队列</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Node"><span class="nav-number">2.1.</span> <span class="nav-text">Node</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ReaderNode"><span class="nav-number">2.2.</span> <span class="nav-text">ReaderNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#WriterNode"><span class="nav-number">2.3.</span> <span class="nav-text">WriterNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%9E%E5%88%B0-CLH-%E9%98%9F%E5%88%97"><span class="nav-number">2.4.</span> <span class="nav-text">回到 CLH 队列</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#View"><span class="nav-number">3.</span> <span class="nav-text">View</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ReadLockView"><span class="nav-number">3.1.</span> <span class="nav-text">ReadLockView</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#WriteLockView"><span class="nav-number">3.2.</span> <span class="nav-text">WriteLockView</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ReadWriteLockView"><span class="nav-number">3.3.</span> <span class="nav-text">ReadWriteLockView</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%90%E8%A7%82%E8%AF%BB"><span class="nav-number">4.</span> <span class="nav-text">乐观读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A8%A1%E5%BC%8F%E8%BD%AC%E6%8D%A2"><span class="nav-number">5.</span> <span class="nav-text">模式转换</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#tryConvertToWriteLock"><span class="nav-number">5.1.</span> <span class="nav-text">tryConvertToWriteLock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tryConvertToReadLock"><span class="nav-number">5.2.</span> <span class="nav-text">tryConvertToReadLock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tryConvertToOptimisticRead"><span class="nav-number">5.3.</span> <span class="nav-text">tryConvertToOptimisticRead</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81%E7%8A%B6%E6%80%81%E6%96%B9%E6%B3%95"><span class="nav-number">6.</span> <span class="nav-text">锁状态方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Best-Practice"><span class="nav-number">7.</span> <span class="nav-text">Best Practice</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-number">8.</span> <span class="nav-text">推荐阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="FFYzz"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">FFYzz</p>
+  <div class="site-description" itemprop="description">在自我鄙视中一步一步往上爬</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/FFYzz" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;FFYzz" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:cryptochen95@gmail.com" title="E-Mail → mailto:cryptochen95@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FFYzz</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

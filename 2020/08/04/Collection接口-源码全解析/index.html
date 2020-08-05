@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Collection 接口源码全解析文章导航:Collection接口 源码全解析 本文 Collection接口 源码解析基于 JDK14-GA 版本。 Collection接口 的完整源码注释可以参看本人 Github 中的 JDK14 仓库 Collection 接口是日常常用的 Set&#x2F;List&#x2F;Queue 的父类接口。需要注意的是，另外一个常用的 Map 接口与 Collection 接">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Collection接口 源码全解析">
+<meta property="og:url" content="http://yoursite.com/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:site_name" content="Journey">
+<meta property="og:description" content="Collection 接口源码全解析文章导航:Collection接口 源码全解析 本文 Collection接口 源码解析基于 JDK14-GA 版本。 Collection接口 的完整源码注释可以参看本人 Github 中的 JDK14 仓库 Collection 接口是日常常用的 Set&#x2F;List&#x2F;Queue 的父类接口。需要注意的是，另外一个常用的 Map 接口与 Collection 接">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752gy1geqtm6zce3j20hq0lumxf.jpg">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752gy1ger1uipjwjj217e16c79p.jpg">
+<meta property="article:published_time" content="2020-08-04T11:19:52.000Z">
+<meta property="article:modified_time" content="2020-08-04T12:55:00.853Z">
+<meta property="article:author" content="FFYzz">
+<meta property="article:tag" content="JDK">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752gy1geqtm6zce3j20hq0lumxf.jpg">
+
+<link rel="canonical" href="http://yoursite.com/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Collection接口 源码全解析 | Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Collection接口 源码全解析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-04 19:19:52 / 修改时间：20:55:00" itemprop="dateCreated datePublished" datetime="2020-08-04T19:19:52+08:00">2020-08-04</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>Collection 接口源码全解析文章导航:</strong><br>Collection接口 源码全解析</p>
+<p><strong>本文 Collection接口 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>Collection接口 的完整源码注释可以参看本人 Github 中的 <a target="_blank" rel="noopener" href="https://github.com/FFYzz/jdk14">JDK14</a> 仓库</strong></p>
+<p>Collection 接口是日常常用的 Set/List/Queue 的父类接口。需要注意的是，另外一个常用的 Map 接口与 Collection 接口是两两独立的。</p>
+<a id="more"></a>
+
+<p><img src="http://ww1.sinaimg.cn/large/9be02752gy1geqtm6zce3j20hq0lumxf.jpg"></p>
+<p>Collection 是存储元素(element) 的容器。存储在容器中的元素在不同具体的容器中有不同的属性，这些元素可以是有序的，也可以是无序的，还可以是不能重复的。一般不通过直接实现 Collection 接口来定义新的容器，而是通过实现 Collection 接口的子接口来实现。实现具体的容器的时候一般需要至少定义两个构造方法，一个是无参的构造方法，用于创建一个空的容器。另一个是带一个参数，参数类型为 Collection 类型的构造方法，可以将容器内的元素进行复制，用于构造出指定类型的容器。</p>
+<p><img src="http://ww1.sinaimg.cn/large/9be02752gy1ger1uipjwjj217e16c79p.jpg"></p>
+<h2 id="接口方法定义"><a href="#接口方法定义" class="headerlink" title="接口方法定义"></a>接口方法定义</h2><h3 id="查询操作"><a href="#查询操作" class="headerlink" title="查询操作"></a>查询操作</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">size</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>返回 Collection 容器中元素的个数，需要注意的是，如果 Collection 中元素的个数超过 Integer.MAX_VALUE 个，则返回 Integer.MAX_VALUE。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">isEmpty</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>返回 Collection 容器是否不包含元素。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">contains</span><span class="params">(Object o)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>返回容器中是否至少包含一个给定的元素。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Iterator&lt;E&gt; <span class="title">iterator</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>该方法继承自 Iterable 接口，用于返回容器的迭代器。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Object[] toArray();</span><br></pre></td></tr></table></figure>
+
+<p>将容器中的元素存储到数组中。如果容器中有指定元素的顺序与 iterator 访问的顺序相同，那么数组中元素的顺序会按照 iterator 的顺序。返回的类型为 Object 类型，且该类型不能被强制转换为其他类型。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;T&gt; T[] toArray(T[] a);</span><br></pre></td></tr></table></figure>
+
+<p>可以指定具体的返回类型，参数中传入一个目标类型的数组。如果数组的大小小于 Collection 的元素个数，那么会自动重新分配一个正确大小的数组。使用这种方法进行类型转换时要注意 Collection 中不包含 null 与元素，如果存在 null 元素，后续的操作可能会产生 NPE。</p>
+<h3 id="修改操作"><a href="#修改操作" class="headerlink" title="修改操作"></a>修改操作</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">add</span><span class="params">(E e)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>将元素加入到容器中，根据具体情况可以有不同的结果。如果容器中不能加入相同的元素，那么加入相同元素时会返回 false。某些具体容器会设置不允许加入 null 值或者加入的元素的类型有限定。返回 true 表示成功加入到容器中，false 表示未加入到容器中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">remove</span><span class="params">(Object o)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>如果容器中包含对象 o，则将 o 从容器中移除。如果 remove 方法调用之后元素被移除了，那么返回 true。</p>
+<h3 id="批量操作"><a href="#批量操作" class="headerlink" title="批量操作"></a>批量操作</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">containsAll</span><span class="params">(Collection&lt;?&gt; c)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>如果当前容器包含给定容器 c 中的所有元素，那么返回 true。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">addAll</span><span class="params">(Collection&lt;? extends E&gt; c)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>将容器 c 中的所有元素否加入到当前容器中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">removeAll</span><span class="params">(Collection&lt;?&gt; c)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>将当前容器中出现在容器 c 中的元素全部都移除。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">retainAll</span><span class="params">(Collection&lt;?&gt; c)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>将当前容器的元素出现在给定容器 c 中的元素保留，其他元素全部删除。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">clear</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>将容器中的元素全部移除，调用该方法之后容器中不包含元素。</p>
+<h3 id="比较方法"><a href="#比较方法" class="headerlink" title="比较方法"></a>比较方法</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">equals</span><span class="params">(Object o)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">hashCode</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>因为容器类一般需要自定义比较的规则，所以需要重写 Object 类中的 equals 方法和 hashCode 方法。</p>
+<h2 id="default-方法"><a href="#default-方法" class="headerlink" title="default 方法"></a>default 方法</h2><h3 id="查询操作-1"><a href="#查询操作-1" class="headerlink" title="查询操作"></a>查询操作</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">default</span> &lt;T&gt; T[] toArray(IntFunction&lt;T[]&gt; generator) &#123;</span><br><span class="line">    <span class="keyword">return</span> toArray(generator.apply(<span class="number">0</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>JDK 11 引入的方法，集合转成数组。使用方式如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Collection&lt;Integer&gt; integers = ....;</span><br><span class="line">Integer[] intArray = integers.toArray(Integer[]::<span class="keyword">new</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="修改操作-1"><a href="#修改操作-1" class="headerlink" title="修改操作"></a>修改操作</h3><h3 id="批量操作-1"><a href="#批量操作-1" class="headerlink" title="批量操作"></a>批量操作</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">default</span> <span class="keyword">boolean</span> <span class="title">removeIf</span><span class="params">(Predicate&lt;? <span class="keyword">super</span> E&gt; filter)</span> </span>&#123;</span><br><span class="line">    Objects.requireNonNull(filter);</span><br><span class="line">    <span class="keyword">boolean</span> removed = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">final</span> Iterator&lt;E&gt; each = iterator();</span><br><span class="line">    <span class="keyword">while</span> (each.hasNext()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (filter.test(each.next())) &#123;</span><br><span class="line">            each.remove();</span><br><span class="line">            removed = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> removed;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>传入一个 Predicate。Predicate 是一个条件，将满足 Predicate 条件的元素从 Collection 中删除。</p>
+<h3 id="数据处理"><a href="#数据处理" class="headerlink" title="数据处理"></a>数据处理</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">default</span> Spliterator&lt;E&gt; <span class="title">spliterator</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> Spliterators.spliterator(<span class="keyword">this</span>, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>spliterator 方法继承自 Iterable 接口。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">default</span> Stream&lt;E&gt; <span class="title">stream</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> StreamSupport.stream(spliterator(), <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>返回当前 Collection 对象的 Stream，得到 Stream 对象之后可以使用流进行操作数据。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">default</span> Stream&lt;E&gt; <span class="title">parallelStream</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> StreamSupport.stream(spliterator(), <span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>多核 CPU 下 parallelStream 会比 Stream 效率更高，但是 parallelStream 不是线程安全的。</p>
+<h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/JDK/" rel="tag"># JDK</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/01/12/JNI-tutorial-%E2%85%A1/" rel="prev" title="JNI-tutorial-Ⅱ">
+      <i class="fa fa-chevron-left"></i> JNI-tutorial-Ⅱ
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/05/LockSupport-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="next" title="LockSupport 源码全解析">
+      LockSupport 源码全解析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%B3%95%E5%AE%9A%E4%B9%89"><span class="nav-number">1.</span> <span class="nav-text">接口方法定义</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E6%93%8D%E4%BD%9C"><span class="nav-number">1.1.</span> <span class="nav-text">查询操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E6%93%8D%E4%BD%9C"><span class="nav-number">1.2.</span> <span class="nav-text">修改操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%B9%E9%87%8F%E6%93%8D%E4%BD%9C"><span class="nav-number">1.3.</span> <span class="nav-text">批量操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AF%94%E8%BE%83%E6%96%B9%E6%B3%95"><span class="nav-number">1.4.</span> <span class="nav-text">比较方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#default-%E6%96%B9%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">default 方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E6%93%8D%E4%BD%9C-1"><span class="nav-number">2.1.</span> <span class="nav-text">查询操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E6%93%8D%E4%BD%9C-1"><span class="nav-number">2.2.</span> <span class="nav-text">修改操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%B9%E9%87%8F%E6%93%8D%E4%BD%9C-1"><span class="nav-number">2.3.</span> <span class="nav-text">批量操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%A4%84%E7%90%86"><span class="nav-number">2.4.</span> <span class="nav-text">数据处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">推荐阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="FFYzz"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">FFYzz</p>
+  <div class="site-description" itemprop="description">在自我鄙视中一步一步往上爬</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/FFYzz" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;FFYzz" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:cryptochen95@gmail.com" title="E-Mail → mailto:cryptochen95@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FFYzz</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

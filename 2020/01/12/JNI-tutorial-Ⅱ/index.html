@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="在上一篇文章中 JNI-tutorial-Ⅰ ，介绍了 JNI 的基本使用。其中在 Java 中声明的 native 方法与 C&#x2F;C++ 中函数关联的方法使用了静态注册的方法。即通过生成特定签名的函数声明头文件。除此之外，还有一种动态注册的方法，使用该方法可以更加灵活的进行 JNI 编程。JDK 中的 native 方法的注册就是使用的动态注册的方式。本文将介绍动态注册的方式，并以 JDK Obj">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JNI-tutorial-Ⅱ">
+<meta property="og:url" content="http://yoursite.com/2020/01/12/JNI-tutorial-%E2%85%A1/index.html">
+<meta property="og:site_name" content="Journey">
+<meta property="og:description" content="在上一篇文章中 JNI-tutorial-Ⅰ ，介绍了 JNI 的基本使用。其中在 Java 中声明的 native 方法与 C&#x2F;C++ 中函数关联的方法使用了静态注册的方法。即通过生成特定签名的函数声明头文件。除此之外，还有一种动态注册的方法，使用该方法可以更加灵活的进行 JNI 编程。JDK 中的 native 方法的注册就是使用的动态注册的方式。本文将介绍动态注册的方式，并以 JDK Obj">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-01-12T08:38:48.000Z">
+<meta property="article:modified_time" content="2020-08-05T07:34:52.713Z">
+<meta property="article:author" content="FFYzz">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2020/01/12/JNI-tutorial-%E2%85%A1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>JNI-tutorial-Ⅱ | Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/12/JNI-tutorial-%E2%85%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          JNI-tutorial-Ⅱ
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-12 16:38:48" itemprop="dateCreated datePublished" datetime="2020-01-12T16:38:48+08:00">2020-01-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-08-05 15:34:52" itemprop="dateModified" datetime="2020-08-05T15:34:52+08:00">2020-08-05</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在上一篇文章中 <a target="_blank" rel="noopener" href="https://ffyzz.github.io/2020/01/07/JNI-tutorial/">JNI-tutorial-Ⅰ</a> ，介绍了 JNI 的基本使用。其中在 Java 中声明的 native 方法与 C/C++ 中函数关联的方法使用了静态注册的方法。即通过生成特定签名的函数声明头文件。<br>除此之外，还有一种动态注册的方法，使用该方法可以更加灵活的进行 JNI 编程。JDK 中的 native 方法的注册就是使用的动态注册的方式。本文将介绍动态注册的方式，并以 JDK Object 类中的动态注册为例进行说明。</p>
+<a id="more"></a>
+
+<h2 id="静态注册"><a href="#静态注册" class="headerlink" title="静态注册"></a>静态注册</h2><p>简单回顾下静态注册的流程：</p>
+<ol>
+<li>编写带有 native 方法的 Java 类。</li>
+<li>通过 JDK 自带的工具 javac -h 来编译生成 class 文件和 header 头文件。</li>
+<li>编写 C/C++ 程序，引入 头文件，编写实现类。</li>
+</ol>
+<p>静态注册的方式主要有以上 3 步。其中静态注册的方法有一个很明显的缺点，那就是生成 native 方法对应的 C/C++ 方法签名的过程比较麻烦，而且生成出来的函数签名特别的长。所以，动态注册的方式的引入可以免去这一繁琐的生成过程，可以将任意函数签名的 C/C++ 函数与 Java 中的 native 方法进行绑定。</p>
+<h2 id="动态注册"><a href="#动态注册" class="headerlink" title="动态注册"></a>动态注册</h2><p>在 Java 程序中调用 System.loadLibrary(“hello”) 的去加载动态链接库的时候，Java 虚拟机会先调用 JNI_OnLoad 函数。与 JNI_OnLoad 函数对应的有一个 JNI_OnUnload 函数。JNI_OnUnload 函数在 Java 虚拟机释放动态链接库的时候会调用执行一些善后的工作。</p>
+<p>Java 程序的编写与静态注册过程程序的编写没有区别。</p>
+<p><strong>Java 程序</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DynamicJNITest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        System.loadLibrary(<span class="string">&quot;hello&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">sayHello</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">new</span> DynamicJNITest().sayHello();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>C 程序的编写与静态注册时的编写就有区别了。首先完整的 C 程序如下：</p>
+<p><strong>C 程序</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;jni.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> __cplusplus</span></span><br><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> &#123;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 全路径类名</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span> *className = <span class="string">&quot;DynamicJNITest&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">sayHello</span><span class="params">(JNIEnv *env, jobject object, jlong handle)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello, it&#x27;s from JNI!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> JNINativeMethod gJni_Methods_table[] = &#123;</span><br><span class="line">        &#123;<span class="string">&quot;sayHello&quot;</span>, <span class="string">&quot;()V&quot;</span>, (<span class="keyword">void</span> *) sayHello&#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">jniRegisterNativeMethods</span><span class="params">(JNIEnv *env, <span class="keyword">const</span> <span class="keyword">char</span> *className,</span></span></span><br><span class="line"><span class="function"><span class="params">                                    <span class="keyword">const</span> JNINativeMethod *gMethods, <span class="keyword">int</span> numMethods)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;start register method \n&quot;</span>);</span><br><span class="line">    jclass clazz;</span><br><span class="line">    <span class="comment">// 根据全路径类名查找类</span></span><br><span class="line">    clazz = (*env)-&gt;FindClass(env, className);</span><br><span class="line">    <span class="keyword">if</span> (clazz == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> result = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> ((*env)-&gt;RegisterNatives(env, clazz, gJni_Methods_table, numMethods) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        result = <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    (*env)-&gt;DeleteLocalRef(env, clazz);</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">jint <span class="title">JNI_OnLoad</span><span class="params">(JavaVM *vm, <span class="keyword">void</span> *reserved)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;start JNI_OnLoad \n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    JNIEnv *env = <span class="literal">NULL</span>;</span><br><span class="line">    jint result = <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((*vm)-&gt;GetEnv(vm, (<span class="keyword">void</span> **) &amp;env, JNI_VERSION_1_6) != JNI_OK) &#123;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    jniRegisterNativeMethods(env, className, gJni_Methods_table, <span class="keyword">sizeof</span>(gJni_Methods_table) / <span class="keyword">sizeof</span>(JNINativeMethod));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> JNI_VERSION_1_6;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> __cplusplus</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="JNI-OnLoad-函数"><a href="#JNI-OnLoad-函数" class="headerlink" title="JNI_OnLoad 函数"></a>JNI_OnLoad 函数</h3><p>JNI_OnLoad 函数在 Java 程序执行 loadLibrary 的时候会首先被调用。在 JNI_OnLoad 函数中一共就只做了两件事。第一件事就是执行了 GetEnv 函数。</p>
+<blockquote>
+<p>GetEnv</p>
+<p>jint GetEnv(JavaVM *vm, void **env, jint version);</p>
+<p>LINKAGE:</p>
+<p>Index 6 in the JavaVM interface function table.</p>
+<p>PARAMETERS:</p>
+<p>vm: The virtual machine instance from which the interface will be retrieved, must not be NULL.</p>
+<p>env: pointer to the location where the JNI interface pointer for the current thread will be placed, must not be NULL.</p>
+<p>version: The requested JNI version.</p>
+<p>RETURNS:</p>
+<p>If the current thread is not attached to the VM, sets *env to NULL, and returns JNI_EDETACHED. If the specified version is not supported, sets *env to NULL, and returns JNI_EVERSION. Otherwise, sets *env to the appropriate interface, and returns JNI_OK.</p>
+</blockquote>
+<p>上述内容摘自 oracle 官网对 JNI 的介绍。描述内容比较简单。大概翻译一下：如果当前线程没有与 VM 绑定，那么 env 的值就为 NULL，返回 JNI_EDETACHED。如果不支持指定的 JNI 版本，那么也会将 env 置为 NULL，返回 JNI_EVERSION。否则的话会将 env 设置为正确的接口，并返回 JNI_OK。说白了 GetEnv 函数就是用于初始化 JNIEnv *env 的。</p>
+<p>第二件事就是执行 jniRegisterNativeMethods 函数。在 jniRegisterNativeMethods 函数中对 Java 程序中的 native 方法与 C 程序中的函数进行绑定。</p>
+<h3 id="jniRegisterNativeMethods-函数"><a href="#jniRegisterNativeMethods-函数" class="headerlink" title="jniRegisterNativeMethods 函数"></a>jniRegisterNativeMethods 函数</h3><p>该函数传入 env，Java 类所在的路径，JNINativeMethod 以及 method 的个数。<br>首先根据传入的 Java 类所在的路径，得到一个 jclass 对象。然后调用 RegisterNatives 函数进行注册。</p>
+<blockquote>
+<p>RegisterNatives</p>
+<p>jint RegisterNatives(JNIEnv *env, jclass clazz, const JNINativeMethod *methods, jint nMethods);</p>
+<p>Registers native methods with the class specified by the clazz argument. The methods parameter specifies an array of JNINativeMethod structures that contain the names, signatures, and function pointers of the native methods. The name and signature fields of the JNINativeMethod structure are pointers to modified UTF-8 strings. The nMethods parameter specifies the number of native methods in the array. The JNINativeMethod structure is defined as follows:</p>
+<p>typedef struct {<br>    char *name;<br>    char *signature;<br>    void *fnPtr;<br>} JNINativeMethod;<br>The function pointers nominally must have the following signature:</p>
+<p>ReturnType (*fnPtr)(JNIEnv *env, jobject objectOrClass, …);<br>LINKAGE:</p>
+<p>Index 215 in the JNIEnv interface function table.</p>
+<p>PARAMETERS:</p>
+<p>env: the JNI interface pointer, must not be NULL.</p>
+<p>clazz: a Java class object, must not be NULL.</p>
+<p>methods: the native methods in the class, must not be NULL.</p>
+<p>nMethods: the number of native methods in the class, must be greater than zero.</p>
+<p>RETURNS:</p>
+<p>Returns “0” on success; returns a negative value on failure.</p>
+<p>THROWS:</p>
+<p>NoSuchMethodError: if a specified method cannot be found or if the method is not native.</p>
+</blockquote>
+<p>其中，JNINativeMethod 是一个结构体，里面有三个变量，一个是 char *name; 表示 Java 程序中的方法名。char *signature; 表示 Java 程序中的方法签名，返回类型+参数类型。void *fnPtr; 表示 C 程序中的函数指针。RegisterNatives 函数注册成功返回 0，注册失败返回一个负值。</p>
+<h2 id="Object-类的动态注册"><a href="#Object-类的动态注册" class="headerlink" title="Object 类的动态注册"></a>Object 类的动态注册</h2><p>Object 类中一共有 7 个 native 方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">registerNatives</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> Class&lt;?&gt; getClass();</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">int</span> <span class="title">hashCode</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">native</span> Object <span class="title">clone</span><span class="params">()</span> <span class="keyword">throws</span> CloneNotSupportedException</span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">notify</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">notifyAll</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">wait</span><span class="params">(<span class="keyword">long</span> timeoutMillis)</span> <span class="keyword">throws</span> InterruptedException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>Object 类对应的 object.c 程序如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Copyright (c) 1994, 2003, Oracle and/or its affiliates. All rights reserved.</span></span><br><span class="line"><span class="comment"> * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This code is free software; you can redistribute it and/or modify it</span></span><br><span class="line"><span class="comment"> * under the terms of the GNU General Public License version 2 only, as</span></span><br><span class="line"><span class="comment"> * published by the Free Software Foundation.  Oracle designates this</span></span><br><span class="line"><span class="comment"> * particular file as subject to the &quot;Classpath&quot; exception as provided</span></span><br><span class="line"><span class="comment"> * by Oracle in the LICENSE file that accompanied this code.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This code is distributed in the hope that it will be useful, but WITHOUT</span></span><br><span class="line"><span class="comment"> * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or</span></span><br><span class="line"><span class="comment"> * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License</span></span><br><span class="line"><span class="comment"> * version 2 for more details (a copy is included in the LICENSE file that</span></span><br><span class="line"><span class="comment"> * accompanied this code).</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * You should have received a copy of the GNU General Public License version</span></span><br><span class="line"><span class="comment"> * 2 along with this work; if not, write to the Free Software Foundation,</span></span><br><span class="line"><span class="comment"> * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA</span></span><br><span class="line"><span class="comment"> * or visit www.oracle.com if you need additional information or have any</span></span><br><span class="line"><span class="comment"> * questions.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/*-</span></span><br><span class="line"><span class="comment"> *      Implementation of class Object</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *      former threadruntime.c, Sun Sep 22 12:09:39 1991</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;limits.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;jni.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;jni_util.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;jvm.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;java_lang_Object.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> JNINativeMethod methods[] = &#123;</span><br><span class="line">    &#123;<span class="string">&quot;hashCode&quot;</span>,    <span class="string">&quot;()I&quot;</span>,                    (<span class="keyword">void</span> *)&amp;JVM_IHashCode&#125;,</span><br><span class="line">    &#123;<span class="string">&quot;wait&quot;</span>,        <span class="string">&quot;(J)V&quot;</span>,                   (<span class="keyword">void</span> *)&amp;JVM_MonitorWait&#125;,</span><br><span class="line">    &#123;<span class="string">&quot;notify&quot;</span>,      <span class="string">&quot;()V&quot;</span>,                    (<span class="keyword">void</span> *)&amp;JVM_MonitorNotify&#125;,</span><br><span class="line">    &#123;<span class="string">&quot;notifyAll&quot;</span>,   <span class="string">&quot;()V&quot;</span>,                    (<span class="keyword">void</span> *)&amp;JVM_MonitorNotifyAll&#125;,</span><br><span class="line">    &#123;<span class="string">&quot;clone&quot;</span>,       <span class="string">&quot;()Ljava/lang/Object;&quot;</span>,   (<span class="keyword">void</span> *)&amp;JVM_Clone&#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">JNIEXPORT <span class="keyword">void</span> JNICALL</span><br><span class="line">Java_java_lang_Object_registerNatives(JNIEnv *env, jclass cls)</span><br><span class="line">&#123;</span><br><span class="line">    (*env)-&gt;RegisterNatives(env, cls,</span><br><span class="line">                            methods, <span class="keyword">sizeof</span>(methods)/<span class="keyword">sizeof</span>(methods[<span class="number">0</span>]));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">JNIEXPORT jclass JNICALL</span><br><span class="line">Java_java_lang_Object_getClass(JNIEnv *env, jobject <span class="keyword">this</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">this</span> == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        JNU_ThrowNullPointerException(env, <span class="literal">NULL</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> (*env)-&gt;GetObjectClass(env, <span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中我们可以看到，7 个 native 方法，有 2 个 native 为静态注册，5 个 native 方法为 动态注册。在 Java 程序中，registerNatives 方法被放在静态代码块中，所以当 Object 类被加载的时候就会执行 registerNatives 方法。从 object.c 程序中可以看出，registerNatives 方法的实现就是将 5 个 native 方法进行动态的注册。</p>
+<p>JVM_IHashCode/JVM_MonitorWait/JVM_MonitorNotify/JVM_MonitorNotifyAll/JVM_Clone 这几个 C 函数的声明在 src/hotspot/share/include/jvm.h 头文件中 :</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * java.lang.Object</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">JNIEXPORT jint JNICALL</span><br><span class="line">JVM_IHashCode(JNIEnv *env, jobject obj);</span><br><span class="line"></span><br><span class="line">JNIEXPORT <span class="keyword">void</span> JNICALL</span><br><span class="line">JVM_MonitorWait(JNIEnv *env, jobject obj, jlong ms);</span><br><span class="line"></span><br><span class="line">JNIEXPORT <span class="keyword">void</span> JNICALL</span><br><span class="line">JVM_MonitorNotify(JNIEnv *env, jobject obj);</span><br><span class="line"></span><br><span class="line">JNIEXPORT <span class="keyword">void</span> JNICALL</span><br><span class="line">JVM_MonitorNotifyAll(JNIEnv *env, jobject obj);</span><br><span class="line"></span><br><span class="line">JNIEXPORT jobject JNICALL</span><br><span class="line">JVM_Clone(JNIEnv *env, jobject obj);</span><br></pre></td></tr></table></figure>
+
+<p>以上几个函数的实现在 src/hotspot/share/prims/jvm.cpp 中 :</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// java.lang.Object ///////////////////////////////////////////////</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">JVM_ENTRY(jint, JVM_IHashCode(JNIEnv* env, jobject handle))</span><br><span class="line">  JVMWrapper(<span class="string">&quot;JVM_IHashCode&quot;</span>);</span><br><span class="line">  <span class="comment">// as implemented in the classic virtual machine; return 0 if object is NULL</span></span><br><span class="line">  <span class="keyword">return</span> handle == <span class="literal">NULL</span> ? <span class="number">0</span> : ObjectSynchronizer::FastHashCode (THREAD, JNIHandles::resolve_non_null(handle)) ;</span><br><span class="line">JVM_END</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">JVM_ENTRY(<span class="keyword">void</span>, JVM_MonitorWait(JNIEnv* env, jobject handle, jlong ms))</span><br><span class="line">  JVMWrapper(<span class="string">&quot;JVM_MonitorWait&quot;</span>);</span><br><span class="line">  <span class="function">Handle <span class="title">obj</span><span class="params">(THREAD, JNIHandles::resolve_non_null(handle))</span></span>;</span><br><span class="line">  <span class="function">JavaThreadInObjectWaitState <span class="title">jtiows</span><span class="params">(thread, ms != <span class="number">0</span>)</span></span>;</span><br><span class="line">  <span class="keyword">if</span> (JvmtiExport::should_post_monitor_wait()) &#123;</span><br><span class="line">    JvmtiExport::post_monitor_wait((JavaThread *)THREAD, (oop)obj(), ms);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// The current thread already owns the monitor and it has not yet</span></span><br><span class="line">    <span class="comment">// been added to the wait queue so the current thread cannot be</span></span><br><span class="line">    <span class="comment">// made the successor. This means that the JVMTI_EVENT_MONITOR_WAIT</span></span><br><span class="line">    <span class="comment">// event handler cannot accidentally consume an unpark() meant for</span></span><br><span class="line">    <span class="comment">// the ParkEvent associated with this ObjectMonitor.</span></span><br><span class="line">  &#125;</span><br><span class="line">  ObjectSynchronizer::wait(obj, ms, CHECK);</span><br><span class="line">JVM_END</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">JVM_ENTRY(<span class="keyword">void</span>, JVM_MonitorNotify(JNIEnv* env, jobject handle))</span><br><span class="line">  JVMWrapper(<span class="string">&quot;JVM_MonitorNotify&quot;</span>);</span><br><span class="line">  <span class="function">Handle <span class="title">obj</span><span class="params">(THREAD, JNIHandles::resolve_non_null(handle))</span></span>;</span><br><span class="line">  ObjectSynchronizer::notify(obj, CHECK);</span><br><span class="line">JVM_END</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">JVM_ENTRY(<span class="keyword">void</span>, JVM_MonitorNotifyAll(JNIEnv* env, jobject handle))</span><br><span class="line">  JVMWrapper(<span class="string">&quot;JVM_MonitorNotifyAll&quot;</span>);</span><br><span class="line">  <span class="function">Handle <span class="title">obj</span><span class="params">(THREAD, JNIHandles::resolve_non_null(handle))</span></span>;</span><br><span class="line">  ObjectSynchronizer::notifyall(obj, CHECK);</span><br><span class="line">JVM_END</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">JVM_ENTRY(jobject, JVM_Clone(JNIEnv* env, jobject handle))</span><br><span class="line">  JVMWrapper(<span class="string">&quot;JVM_Clone&quot;</span>);</span><br><span class="line">  <span class="function">Handle <span class="title">obj</span><span class="params">(THREAD, JNIHandles::resolve_non_null(handle))</span></span>;</span><br><span class="line">  Klass* klass = obj-&gt;klass();</span><br><span class="line">  JvmtiVMObjectAllocEventCollector oam;</span><br></pre></td></tr></table></figure>
+
+<p>以上就大概介绍了 Object 类中 native 方法的注册以及实现，具体的源码分析将在后续的源码分析相关文章中展开。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/01/07/JNI-tutorial-%E2%85%A0/" rel="prev" title="JNI tutorial Ⅰ">
+      <i class="fa fa-chevron-left"></i> JNI tutorial Ⅰ
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="next" title="Collection接口 源码全解析">
+      Collection接口 源码全解析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E6%B3%A8%E5%86%8C"><span class="nav-number">1.</span> <span class="nav-text">静态注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E6%B3%A8%E5%86%8C"><span class="nav-number">2.</span> <span class="nav-text">动态注册</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#JNI-OnLoad-%E5%87%BD%E6%95%B0"><span class="nav-number">2.1.</span> <span class="nav-text">JNI_OnLoad 函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#jniRegisterNativeMethods-%E5%87%BD%E6%95%B0"><span class="nav-number">2.2.</span> <span class="nav-text">jniRegisterNativeMethods 函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Object-%E7%B1%BB%E7%9A%84%E5%8A%A8%E6%80%81%E6%B3%A8%E5%86%8C"><span class="nav-number">3.</span> <span class="nav-text">Object 类的动态注册</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="FFYzz"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">FFYzz</p>
+  <div class="site-description" itemprop="description">在自我鄙视中一步一步往上爬</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/FFYzz" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;FFYzz" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:cryptochen95@gmail.com" title="E-Mail → mailto:cryptochen95@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FFYzz</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
