@@ -182,10 +182,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2020-08-31 18:02:16 / 修改时间：22:03:55" itemprop="dateCreated datePublished" datetime="2020-08-31T18:02:16+08:00">2020-08-31</time>
+              <time title="创建时间：2020-08-31 18:02:16" itemprop="dateCreated datePublished" datetime="2020-08-31T18:02:16+08:00">2020-08-31</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-01 06:52:15" itemprop="dateModified" datetime="2020-09-01T06:52:15+08:00">2020-09-01</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -222,27 +228,14 @@
 
       
           <p>BufferedOutputStream 继承自 FilterInputStream，功能上与 BufferedInputStream 比较类似，都是在应用层与 Java 等缓冲区之间建立一个缓冲区。只不过 BufferedInputStream 的缓冲区方便用户一次性快速读取，避免多次向 Java 层缓冲区读取。而 BufferedOutputStream 的缓冲区则是避免用户多次向 Java 层缓冲区写数据，而是当缓冲区满之后才会向 Java 层缓冲区写一次数据。当然也是可以手动 flush 的。</p>
-<h2 id="构造方法"><a href="#构造方法" class="headerlink" title="构造方法"></a>构造方法</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">BufferedOutputStream</span><span class="params">(OutputStream out)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 默认的 buf 大小为 8192</span></span><br><span class="line">    <span class="keyword">this</span>(out, <span class="number">8192</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">BufferedOutputStream</span><span class="params">(OutputStream out, <span class="keyword">int</span> size)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(out);</span><br><span class="line">    <span class="keyword">if</span> (size &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">&quot;Buffer size &lt;= 0&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    buf = <span class="keyword">new</span> <span class="keyword">byte</span>[size];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>与 BufferedInputStream 类似，缓冲区的默认大小也是为 <strong>8192</strong>，同样也是可以自己指定缓冲区大小的。</p>
-<h2 id="BufferedOutputStream-中的-write-方法"><a href="#BufferedOutputStream-中的-write-方法" class="headerlink" title="BufferedOutputStream 中的 write 方法"></a>BufferedOutputStream 中的 write 方法</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(<span class="keyword">int</span> b)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="comment">// 如果缓冲区满，则需要进行一次 flush</span></span><br><span class="line">    <span class="keyword">if</span> (count &gt;= buf.length) &#123;</span><br><span class="line">        flushBuffer();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 保存到缓冲区中</span></span><br><span class="line">    buf[count++] = (<span class="keyword">byte</span>) b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="comment">// 如果写入的数据大于 buf 的长度</span></span><br><span class="line">    <span class="keyword">if</span> (len &gt;= buf.length) &#123;</span><br><span class="line">        <span class="comment">/* If the request length exceeds the size of the output buffer,</span></span><br><span class="line"><span class="comment">           flush the output buffer and then write the data directly.</span></span><br><span class="line"><span class="comment">           In this way buffered streams will cascade harmlessly. */</span></span><br><span class="line">        <span class="comment">// 将缓冲区的数据写入到 OutputStream 中</span></span><br><span class="line">        flushBuffer();</span><br><span class="line">        <span class="comment">// 直接调用传入的 OutputStream 的 write 方法</span></span><br><span class="line">        out.write(b, off, len);</span><br><span class="line">        <span class="comment">// 返回</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// len &lt; buf.length</span></span><br><span class="line">    <span class="comment">// 说明数据能放入 buf 中</span></span><br><span class="line">    <span class="comment">// check 一下是否需要将目前在 buf 中的数据 flush</span></span><br><span class="line">    <span class="keyword">if</span> (len &gt; buf.length - count) &#123;</span><br><span class="line">        flushBuffer();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 将数据写入 buf 中</span></span><br><span class="line">    System.arraycopy(b, off, buf, count, len);</span><br><span class="line">    <span class="comment">// 更新 count</span></span><br><span class="line">    count += len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>BufferedOutputStream 中提供了两种类型的方法向缓冲区中写入数据。</p>
-<ul>
-<li>write(int b) 方法将数据 b 写入到缓冲区中，写入之前先检查一下缓冲区是否已满，若缓冲区满，则进行一次 flushBuffer，flushBuffer 在后面会进行分析。</li>
-<li>write(byte b[], int off, int len) 则是将数组 b[off] -&gt; b[off+len] 的数据写入到缓冲区中。<ul>
-<li>如果要写入的数据大于缓冲区的容量，则将缓冲区的数据进行 flush，随后调用 传入的 OutputStream 的 write 方法进行写入。</li>
-<li>否则，处理一下缓冲区，随后进行数组拷贝。</li>
-</ul>
-</li>
-</ul>
-<h2 id="缓冲区-flush"><a href="#缓冲区-flush" class="headerlink" title="缓冲区 flush"></a>缓冲区 flush</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">flushBuffer</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (count &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">// flush 真实的动作</span></span><br><span class="line">        out.write(buf, <span class="number">0</span>, count);</span><br><span class="line">        <span class="comment">// 更新 count</span></span><br><span class="line">        count = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">flush</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="comment">// 先 flush 缓冲区</span></span><br><span class="line">    flushBuffer();</span><br><span class="line">    <span class="comment">// 再 flush OutputStream</span></span><br><span class="line">    out.flush();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>flushBuffer() 方法是一个 private 方法，在进行写入的时候会被内部调用，用于将缓冲区中的数据 flush 到 Java 层缓冲区中。</li>
-<li>flush() 则是先将应用层的缓冲区 flush 到 Java 层的缓冲区中，最后再调用 OutputStream 的 flush 方法，将 Java 层的缓冲区数据 flush 到底层 IO 设备中，</li>
-</ul>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/31/BufferedOutputStream-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -292,7 +285,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-08-31 22:04:16" itemprop="dateModified" datetime="2020-08-31T22:04:16+08:00">2020-08-31</time>
+                <time title="修改时间：2020-09-01 06:52:48" itemprop="dateModified" datetime="2020-09-01T06:52:48+08:00">2020-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
