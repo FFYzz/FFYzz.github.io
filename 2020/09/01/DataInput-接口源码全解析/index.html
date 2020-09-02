@@ -21,22 +21,19 @@
     var CONFIG = {"hostname":"ffyzz.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="前言最近在刷 LeetCode 的时候，在 Discuss 区看到有人提了一个 Floyd’s Cycle Detection Algorithm(弗洛伊德循环检测算法)。咋一看，是个从来没了解的算法，很好奇。于是就继续看了下去。大概扫了一眼代码实现后，发现这个看起来很玄乎的算法自己以前也应用过。记得很清楚是用在了检测链表存不存在环的一道题目上。那道题的解法中使用了快慢指针，两个指针同时开始移动。">
+  <meta name="description" content="DataInput 是一个接口，定义方法的实现规范。 DataInput 与 InputStream 不同，InputStream 读取后的数据位 byte 形式，DataInput 可以将数据读成 Primitive Java 类型和 String 类型。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Floyd&#39;s Cycle Detection Algorithm">
-<meta property="og:url" content="https://ffyzz.github.io/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/index.html">
+<meta property="og:title" content="DataInput 接口源码全解析">
+<meta property="og:url" content="https://ffyzz.github.io/2020/09/01/DataInput-%E6%8E%A5%E5%8F%A3%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/index.html">
 <meta property="og:site_name" content="Journey">
-<meta property="og:description" content="前言最近在刷 LeetCode 的时候，在 Discuss 区看到有人提了一个 Floyd’s Cycle Detection Algorithm(弗洛伊德循环检测算法)。咋一看，是个从来没了解的算法，很好奇。于是就继续看了下去。大概扫了一眼代码实现后，发现这个看起来很玄乎的算法自己以前也应用过。记得很清楚是用在了检测链表存不存在环的一道题目上。那道题的解法中使用了快慢指针，两个指针同时开始移动。">
+<meta property="og:description" content="DataInput 是一个接口，定义方法的实现规范。 DataInput 与 InputStream 不同，InputStream 读取后的数据位 byte 形式，DataInput 可以将数据读成 Primitive Java 类型和 String 类型。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg">
-<meta property="article:published_time" content="2020-08-05T07:05:17.000Z">
-<meta property="article:modified_time" content="2020-08-05T11:17:47.135Z">
+<meta property="article:published_time" content="2020-09-01T11:58:49.000Z">
+<meta property="article:modified_time" content="2020-09-02T10:55:46.762Z">
 <meta property="article:author" content="FFYzz">
-<meta property="article:tag" content="JDK">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg">
 
-<link rel="canonical" href="https://ffyzz.github.io/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/">
+<link rel="canonical" href="https://ffyzz.github.io/2020/09/01/DataInput-%E6%8E%A5%E5%8F%A3%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
 
 
 <script id="page-configurations">
@@ -49,7 +46,7 @@
   };
 </script>
 
-  <title>Floyd's Cycle Detection Algorithm | Journey</title>
+  <title>DataInput 接口源码全解析 | Journey</title>
   
 
 
@@ -165,7 +162,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/09/01/DataInput-%E6%8E%A5%E5%8F%A3%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -178,7 +175,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Floyd's Cycle Detection Algorithm
+          DataInput 接口源码全解析
         </h1>
 
         <div class="post-meta">
@@ -187,17 +184,23 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2020-08-05 15:05:17 / 修改时间：19:17:47" itemprop="dateCreated datePublished" datetime="2020-08-05T15:05:17+08:00">2020-08-05</time>
+              <time title="创建时间：2020-09-01 19:58:49" itemprop="dateCreated datePublished" datetime="2020-09-01T19:58:49+08:00">2020-09-01</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-02 18:55:46" itemprop="dateModified" datetime="2020-09-02T18:55:46+08:00">2020-09-02</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Algorithm/" itemprop="url" rel="index"><span itemprop="name">Algorithm</span></a>
+                  <a href="/categories/JDK/" itemprop="url" rel="index"><span itemprop="name">JDK</span></a>
                 </span>
             </span>
 
@@ -217,8 +220,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/Floyd-s-Cycle-Detection-Algorithm/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2020/09/01/DataInput-%E6%8E%A5%E5%8F%A3%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/09/01/DataInput-接口源码全解析/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -233,23 +236,59 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近在刷 LeetCode 的时候，在 Discuss 区看到有人提了一个 Floyd’s Cycle Detection Algorithm(弗洛伊德循环检测算法)。咋一看，是个从来没了解的算法，很好奇。于是就继续看了下去。大概扫了一眼代码实现后，发现这个看起来很玄乎的算法自己以前也应用过。记得很清楚是用在了检测链表存不存在环的一道题目上。那道题的解法中使用了快慢指针，两个指针同时开始移动。快指针每次移动两步，慢指针每次移动一步。如果链表中存在环，那么慢指针与快指针最终一定会相遇。</p>
+        <p>DataInput 是一个接口，定义方法的实现规范。 DataInput 与 InputStream 不同，InputStream 读取后的数据位 byte 形式，DataInput 可以将数据读成 Primitive Java 类型和 String 类型。</p>
 <a id="more"></a>
-<h2 id="Floyd’s-Cycle-Detection-Algorithm"><a href="#Floyd’s-Cycle-Detection-Algorithm" class="headerlink" title="Floyd’s Cycle Detection Algorithm"></a>Floyd’s Cycle Detection Algorithm</h2><p>首先给出一个存在环的链表。</p>
-<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg"></p>
-<p>Floyd’s Cycle Detection Algorithm 的思想就是使用两个指针，两个指针以不同的速率往前移动。一般快的指针的速率是慢指针的两倍。因此两个指针的距离在每一次移动之后都会增加 1。如果两个指针在某处相遇了，那么说明链表中存在环。如果快指针走到了链表的末尾，则说明链表中不存在环。</p>
-<p>以下是 Floyd’s Cycle Detection Algorithm 的代码模板。</p>
-<p>链表数据结构:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ListNode</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> val;</span><br><span class="line">    ListNode next;</span><br><span class="line"></span><br><span class="line">    ListNode(<span class="keyword">int</span> x) &#123;</span><br><span class="line">        val = x;</span><br><span class="line">        next = <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>检测环代码模板:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">hasCycle</span><span class="params">(ListNode head)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (head == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    ListNode slow = head;</span><br><span class="line">    ListNode fast = head;</span><br><span class="line">    <span class="keyword">while</span> (fast.next != <span class="keyword">null</span> &amp;&amp; fast.next.next != <span class="keyword">null</span>) &#123;</span><br><span class="line">        slow = slow.next;</span><br><span class="line">        fast = fast.next.next;</span><br><span class="line">        <span class="keyword">if</span> (slow == fast) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面来看 DataInput 的接口定义。</p>
+<h2 id="接口定义"><a href="#接口定义" class="headerlink" title="接口定义"></a>接口定义</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">readFully</span><span class="params">(<span class="keyword">byte</span> b[])</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
 
-<h2 id="实战练习"><a href="#实战练习" class="headerlink" title="实战练习"></a>实战练习</h2><p>实战练习可以参考 LeetCode 的这几道题：</p>
-<ol start="141">
-<li>Linked List Cycle</li>
-<li>Happy Number</li>
-</ol>
+<p>从 input stream (与 InputStream 不同) 中读取数据存储到传入的 byte 数组中，读取的字节数为传入的字节数组的长度。若没有读满，会阻塞，直到有以下情况发生:</p>
+<ul>
+<li>读满正常返回</li>
+<li>读完了，但是没满，抛出 EOFException 异常。</li>
+<li>IO 异常抛出 IOException</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">readFully</span><span class="params">(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>与上述方法类似，只是该读取方法指定了读取数据的存放位置为 b[off] -&gt; b[off + len - 1]。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">skipBytes</span><span class="params">(<span class="keyword">int</span> n)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中跳过 n byte 的数据，如果跳过的字节数小于 n，那只有一个原因， input stream 的数据读完了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">readBoolean</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>从 input stream 中读取一个字节的数据，并将读到的值转为 boolean 类型的数据。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">byte</span> <span class="title">readByte</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取一个字节的数据，将其转为有符号的 byte 类型数据，与 DataOutput 接口的 writeByte 方法适配。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">readUnsignedByte</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取一个字节的数据，将其转为无符号的 byte 类型数据，与 DataOutput 接口的 writeByte 方法适配。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">short</span> <span class="title">readShort</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取两个字节的数据，转为 short 类型的值。与 DataOutput 接口的 writeShort 方法适配。<br>计算方法为 (short)((a &lt;&lt; 8) | (b &amp; 0xff))，a 为读到的第一个字节，b 为读到的第二个字节。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">readUnsignedShort</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取两个字节的数据，转为无符号 short 类型的值。与 DataOutput 接口的 writeShort 方法适配。<br>计算方法为 (((a &amp; 0xff) &lt;&lt; 8) | (b &amp; 0xff))，a 为读到的第一个字节，b 为读到的第二个字节。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">char</span> <span class="title">readChar</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取两个字节的数据，转为 char 类型的值。与 DataOutput 接口的 writeChar 方法适配。<br>计算方法为 (char)((a &lt;&lt; 8) | (b &amp; 0xff))，a 为读到的第一个字节，b 为读到的第二个字节。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">readInt</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取四个字节的数据，转为 int 类型的值。<br>计算方法为 (((a &amp; 0xff) &lt;&lt; 24) | ((b &amp; 0xff) &lt;&lt; 16) | ((c &amp; 0xff) &lt;&lt;  8) | (d &amp; 0xff))，a-d 为依次读到的四个字节数据。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">readLong</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取八个字节的数据，转为 int 类型的值。<br>计算方法为:<br>(((long)(a &amp; 0xff) &lt;&lt; 56) |<br> ((long)(b &amp; 0xff) &lt;&lt; 48) |<br> ((long)(c &amp; 0xff) &lt;&lt; 40) |<br> ((long)(d &amp; 0xff) &lt;&lt; 32) |<br> ((long)(e &amp; 0xff) &lt;&lt; 24) |<br> ((long)(f &amp; 0xff) &lt;&lt; 16) |<br> ((long)(g &amp; 0xff) &lt;&lt;  8) |<br> ((long)(h &amp; 0xff)))<br> a-h 为依次读到的八个字节数据。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">float</span> <span class="title">readFloat</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取四个字节的数据，转为 float 类型的值。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">double</span> <span class="title">readDouble</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取八个字节的数据，转为 double 类型的值。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">String <span class="title">readLine</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>从 input stream 中读取一行的数据，直到遇到换行符。该方法并不支持所有的 Unicode 字符集。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">String <span class="title">readUTF</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>读取一个用 UTF-8 编码格式进行编码的字符串。</p>
 
     </div>
 
@@ -258,9 +297,6 @@
     
 
       <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/JDK/" rel="tag"># JDK</a>
-          </div>
 
         
 
@@ -268,12 +304,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="prev" title="ThreadLocal 源码全解析">
-      <i class="fa fa-chevron-left"></i> ThreadLocal 源码全解析
+    <a href="/2020/09/01/ByteArrayInputStream-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="prev" title="ByteArrayInputStream 源码全解析">
+      <i class="fa fa-chevron-left"></i> ByteArrayInputStream 源码全解析
     </a></div>
       <div class="post-nav-item">
-    <a href="/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="next" title="AbstractQueuedSynchronizer 源码全解析">
-      AbstractQueuedSynchronizer 源码全解析 <i class="fa fa-chevron-right"></i>
+    <a href="/2020/09/01/DataOutput-%E6%8E%A5%E5%8F%A3%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="next" title="DataOutput 接口源码全解析">
+      DataOutput 接口源码全解析 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -340,7 +376,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Floyd%E2%80%99s-Cycle-Detection-Algorithm"><span class="nav-text">Floyd’s Cycle Detection Algorithm</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E7%BB%83%E4%B9%A0"><span class="nav-text">实战练习</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89"><span class="nav-text">接口定义</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -496,9 +532,9 @@
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "https://ffyzz.github.io/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/";
-    this.page.identifier = "2020/08/05/Floyd-s-Cycle-Detection-Algorithm/";
-    this.page.title = "Floyd's Cycle Detection Algorithm";
+    this.page.url = "https://ffyzz.github.io/2020/09/01/DataInput-%E6%8E%A5%E5%8F%A3%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/";
+    this.page.identifier = "2020/09/01/DataInput-接口源码全解析/";
+    this.page.title = "DataInput 接口源码全解析";
     };
   NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
     if (window.DISQUS) {
