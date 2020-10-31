@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/timg.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/icon64.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/icon64.png">
+  <link rel="mask-icon" href="/images/icon64.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"ffyzz.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Spring 中涉及到两个比较重要的生命周期的管理，一个是 Bean 的生命周期，另一个是 ApplicationContext 的生命周期。本文将结合源码，对 Spring Bean 的全生命周期进行整理。 本文整理基于的 Spring Framework 版本为 5.2.8.RELEASE。 前言Bean 在 Spring 中的底层数据结构表示形式是通过 BeanDefinition 来存储的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring Bean 的完整生命周期">
+<meta property="og:url" content="https://ffyzz.github.io/2020/10/31/Spring-Bean-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/index.html">
+<meta property="og:site_name" content="Journey">
+<meta property="og:description" content="Spring 中涉及到两个比较重要的生命周期的管理，一个是 Bean 的生命周期，另一个是 ApplicationContext 的生命周期。本文将结合源码，对 Spring Bean 的全生命周期进行整理。 本文整理基于的 Spring Framework 版本为 5.2.8.RELEASE。 前言Bean 在 Spring 中的底层数据结构表示形式是通过 BeanDefinition 来存储的">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752gy1gk8akodujzj20xq0bpach.jpg">
+<meta property="article:published_time" content="2020-10-30T22:14:31.000Z">
+<meta property="article:modified_time" content="2020-10-31T07:08:05.312Z">
+<meta property="article:author" content="FFYzz">
+<meta property="article:tag" content="Spring">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752gy1gk8akodujzj20xq0bpach.jpg">
+
+<link rel="canonical" href="https://ffyzz.github.io/2020/10/31/Spring-Bean-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Spring Bean 的完整生命周期 | Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/10/31/Spring-Bean-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring Bean 的完整生命周期
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-10-31 06:14:31 / 修改时间：15:08:05" itemprop="dateCreated datePublished" datetime="2020-10-31T06:14:31+08:00">2020-10-31</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/10/31/Spring-Bean-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/10/31/Spring-Bean-的完整生命周期/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Spring 中涉及到两个比较重要的生命周期的管理，一个是 Bean 的生命周期，另一个是 ApplicationContext 的生命周期。本文将结合源码，对 Spring Bean 的全生命周期进行整理。</p>
+<p>本文整理基于的 Spring Framework 版本为 5.2.8.RELEASE。</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>Bean 在 Spring 中的底层数据结构表示形式是通过 BeanDefinition 来存储的。并且，Bean 的定义常见的可以有以下三种方式:</p>
+<ol>
+<li>在 XML 配置中声明 bean 标签。</li>
+<li>通过注解方式，在配置类中以 @Bean 的方式进行声明。</li>
+<li>通过原生 API 的方式，BeanDefinitionBuilder 来创建 Beandefinition 随后注册 Beandefinition 以及最后获取到 Bean。</li>
+</ol>
+<p>当然 Spring 中也允许通过 properties 文件定义 Bean，但是用的很少。 </p>
+<p>首先，给出一张差不多都见过的 Bean 生命周期图：(建议与下面分步流程解析配合使用)</p>
+<p><img src="http://ww1.sinaimg.cn/large/9be02752gy1gk8akodujzj20xq0bpach.jpg" alt="Spring-Bean-Lifecycle.png"></p>
+<h2 id="Bean-元数据-BeanDefinition-的配置加载与注册"><a href="#Bean-元数据-BeanDefinition-的配置加载与注册" class="headerlink" title="Bean 元数据 BeanDefinition 的配置加载与注册"></a>Bean 元数据 BeanDefinition 的配置加载与注册</h2><p>从前文可知，Bean 的定义可以有三种方式。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">&quot;user&quot;</span> <span class="attr">class</span>=<span class="string">&quot;cn.ffyzz.spring.bean.lifecycle.entity.User&quot;</span>/&gt;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(User.class);</span><br><span class="line">builder.addPropertyValue(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;FFYzz&quot;</span>)</span><br><span class="line">        .addPropertyValue(<span class="string">&quot;age&quot;</span>, <span class="number">30</span>);</span><br><span class="line">BeanDefinition userBD = builder.getBeanDefinition();</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> User <span class="title">user</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> User();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>BeanDefinition 的加载与注册过程根据不同的资源类型有不同的加载方式，下面以 XML 资源类型的加载为例。</p>
+<ol>
+<li>AbstractBeanDefinitionReader#loadBeanDefinitions 方法是加载 BeanDefinition 的入口。该方法由多个重载实现，可以传入 String… 或者 Resource… 类型。</li>
+<li>如果传入的是 String 类型的路径，则根据传入的值，配合 PathMatchingResourcePatternResolver 处理传入路径之后，构造出一个  Resource 实例。</li>
+<li>得到 Resource 之后，调回到 AbstractBeanDefinitionReader#loadBeanDefinitions(Resource) 方法进行加载。</li>
+<li>因为当前分析的是 XML 类型的资源，因此会调到 XmlBeanDefinitionReader#loadBeanDefinitions 方法。</li>
+<li>XmlBeanDefinitionReader#loadBeanDefinitions 会调用底层的 InputStream，读取资源文件数据。并将读取到的 InputStream 封装成 InputSource。</li>
+<li>随后调用 XmlBeanDefinitionReader#doLoadBeanDefinitions 方法，InputSource 被解析成 Document 对象，随后对 Document 对象进行解析。</li>
+<li>通过 BeanDefinitionDocumentReader#registerBeanDefinitions 方法对 BeanDefinition 进行注册。</li>
+<li>注册的过程中会调用到 DefaultBeanDefinitionDocumentReader#parseBeanDefinitions 方法，进行解析。</li>
+<li>默认可以解析四种类型的标签，import / alias / bean / beans(内部嵌套)。</li>
+<li>解析 bean 标签的时候，DefaultBeanDefinitionDocumentReader#processBeanDefinition 会调用到 BeanDefinitionReaderUtils#registerBeanDefinition 进行注册。最终会将 &lt;beanName, BeanDefinition&gt; 存到 DefaultListableBeanFactory 的 beanDefinitionMap 中，把 beanName 存放到 beanDefinitionNames 列表中。列表中存放 beanName 用于维护 BeanDefinition 的顺序。</li>
+<li>同时也在这 BeanDefinitionReaderUtils#registerBeanDefinition 中对 Bean 的别名进行处理。</li>
+<li>可以通过继承 EmptyReaderEventListener 重写其中的方法来监听注册完成事件。</li>
+</ol>
+<h2 id="Bean-Class-的加载"><a href="#Bean-Class-的加载" class="headerlink" title="Bean Class 的加载"></a>Bean Class 的加载</h2><p>从前文的 BeanDefinition 配置加载与注册可以得知，仅仅是将 beanName 与 对应的 BeanDefinition 放入到 Map 中进行保存，并没有进行实例化，并且 RootBeanDefinition 中的 beanClass 也还是为 String 类型的字符串，并没有解析为目标 Bean 的 Class 类型。在 AbstractAutowireCapableBeanFactory#createBean 方法中，就会调用到 resolveBeanClass，最终通过 Class.forName API 解析得到 Bean 的 Class 类型。</p>
+<h2 id="Bean-实例化前的-postProcessor-回调"><a href="#Bean-实例化前的-postProcessor-回调" class="headerlink" title="Bean 实例化前的 postProcessor 回调"></a>Bean 实例化前的 postProcessor 回调</h2><p>得到 Bean 的 Class 类型之后，同样在 AbstractAutowireCapableBeanFactory#createBean 方法中，会调用 resolveBeforeInstantiation 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> Object <span class="title">resolveBeforeInstantiation</span><span class="params">(String beanName, RootBeanDefinition mbd)</span> </span>&#123;</span><br><span class="line">    Object bean = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) &#123;</span><br><span class="line">        <span class="comment">// Make sure bean class is actually resolved at this point.</span></span><br><span class="line">        <span class="keyword">if</span> (!mbd.isSynthetic() &amp;&amp; hasInstantiationAwareBeanPostProcessors()) &#123;</span><br><span class="line">            Class&lt;?&gt; targetType = determineTargetType(beanName, mbd);</span><br><span class="line">            <span class="keyword">if</span> (targetType != <span class="keyword">null</span>) &#123;</span><br><span class="line">                bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);</span><br><span class="line">                <span class="keyword">if</span> (bean != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        mbd.beforeInstantiationResolved = (bean != <span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> bean;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果当前应用上下文注册了 InstantiationAwareBeanPostProcessor 接口，重写了 postProcessBeforeInstantiation 方法，则在这里可以对 Bean Class 进行处理，比如返回一个代理的 Bean。</p>
+<h2 id="实例化-Bean"><a href="#实例化-Bean" class="headerlink" title="实例化 Bean"></a>实例化 Bean</h2><p>AbstractAutowireCapableBeanFactory#doCreateBean 正式进入到创建 Bean 的过程中。该方法会调用 createBeanInstance 方法进行实例化 Bean。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> BeanWrapper <span class="title">instantiateBean</span><span class="params">(String beanName, RootBeanDefinition mbd)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Object beanInstance;</span><br><span class="line">        <span class="keyword">if</span> (System.getSecurityManager() != <span class="keyword">null</span>) &#123;</span><br><span class="line">            beanInstance = AccessController.doPrivileged(</span><br><span class="line">                    (PrivilegedAction&lt;Object&gt;) () -&gt; getInstantiationStrategy().instantiate(mbd, beanName, <span class="keyword">this</span>),</span><br><span class="line">                    getAccessControlContext());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            beanInstance = getInstantiationStrategy().instantiate(mbd, beanName, <span class="keyword">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        BeanWrapper bw = <span class="keyword">new</span> BeanWrapperImpl(beanInstance);</span><br><span class="line">        initBeanWrapper(bw);</span><br><span class="line">        <span class="keyword">return</span> bw;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> BeanCreationException(</span><br><span class="line">                mbd.getResourceDescription(), beanName, <span class="string">&quot;Instantiation of bean failed&quot;</span>, ex);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>instantiateBean 方法根据实例化策略来进行实例化。Spring 中提供了两种实例化策略，一种是基于 Java 原生反射的实现 SimpleInstantiationStrategy。另一种基于 CGLib 字节码增强的 CglibSubclassingInstantiationStrategy 策略。不同策略底层在实例化时有不同的行为。</p>
+<p>实例化之后的行为还包括 MergedBeanDefinitionPostProcessor 动作，允许 Bean 在实例化之后有一个后置处理动作，对 Bean 进行配置。</p>
+<h2 id="Bean-实例化后的-postProcessor-回调"><a href="#Bean-实例化后的-postProcessor-回调" class="headerlink" title="Bean 实例化后的 postProcessor 回调"></a>Bean 实例化后的 postProcessor 回调</h2><p>AbstractAutowireCapableBeanFactory#populateBean 方法的调用意味着进入到了 Bean 实例属性填充的阶段。如果当前应用上下文存在 InstantiationAwareBeanPostProcessor ，则调用其 postProcessAfterInstantiation 方法进行实例化之后的后置处理，也可以认为是属性填充前的处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!mbd.isSynthetic() &amp;&amp; hasInstantiationAwareBeanPostProcessors()) &#123;</span><br><span class="line">    <span class="keyword">for</span> (BeanPostProcessor bp : getBeanPostProcessors()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (bp <span class="keyword">instanceof</span> InstantiationAwareBeanPostProcessor) &#123;</span><br><span class="line">            InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;</span><br><span class="line">            <span class="keyword">if</span> (!ibp.postProcessAfterInstantiation(bw.getWrappedInstance(), beanName)) &#123;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Bean-属性的填充"><a href="#Bean-属性的填充" class="headerlink" title="Bean 属性的填充"></a>Bean 属性的填充</h2><p>属性在 BeanDefinition 中保存在 PropertyValues 中。因为 InstantiationAwareBeanPostProcessor 接口不仅仅定义了 postProcessBeforeInstantiation 和 postProcessAfterInstantiation 方法，还定义了 postProcessProperties 方法。因此如果存在 InstantiationAwareBeanPostProcessor 处理器，则可以调用 postProcessPropertyValues 方法，对属性的设置进行拦截。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (BeanPostProcessor bp : getBeanPostProcessors()) &#123;</span><br><span class="line">    <span class="keyword">if</span> (bp <span class="keyword">instanceof</span> InstantiationAwareBeanPostProcessor) &#123;</span><br><span class="line">        InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;</span><br><span class="line">        PropertyValues pvsToUse = ibp.postProcessProperties(pvs, bw.getWrappedInstance(), beanName);</span><br><span class="line">        <span class="keyword">if</span> (pvsToUse == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (filteredPds == <span class="keyword">null</span>) &#123;</span><br><span class="line">                filteredPds = filterPropertyDescriptorsForDependencyCheck(bw, mbd.allowCaching);</span><br><span class="line">            &#125;</span><br><span class="line">            pvsToUse = ibp.postProcessPropertyValues(pvs, filteredPds, bw.getWrappedInstance(), beanName);</span><br><span class="line">            <span class="keyword">if</span> (pvsToUse == <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        pvs = pvsToUse;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>随后调用 applyPropertyValues 方法对属性进行设置。</p>
+<h2 id="Aware-接口回调"><a href="#Aware-接口回调" class="headerlink" title="Aware 接口回调"></a>Aware 接口回调</h2><p>AbstractAutowireCapableBeanFactory#initializeBean 方法将对 Bean 进行初始化。初始化之前会对 Aware 接口进行回调。如果 Bean 实现了以下 Aware 接口，则会进行回调。<br>回调的顺序是 BeanNameAware -&gt; BeanClassLoaderAware -&gt; BeanFactoryAware。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">invokeAwareMethods</span><span class="params">(String beanName, Object bean)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> Aware) &#123;</span><br><span class="line">        <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> BeanNameAware) &#123;</span><br><span class="line">            ((BeanNameAware) bean).setBeanName(beanName);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> BeanClassLoaderAware) &#123;</span><br><span class="line">            ClassLoader bcl = getBeanClassLoader();</span><br><span class="line">            <span class="keyword">if</span> (bcl != <span class="keyword">null</span>) &#123;</span><br><span class="line">                ((BeanClassLoaderAware) bean).setBeanClassLoader(bcl);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> BeanFactoryAware) &#123;</span><br><span class="line">            ((BeanFactoryAware) bean).setBeanFactory(AbstractAutowireCapableBeanFactory.<span class="keyword">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Bean-初始化前的处理"><a href="#Bean-初始化前的处理" class="headerlink" title="Bean 初始化前的处理"></a>Bean 初始化前的处理</h2><p>AbstractAutowireCapableBeanFactory#initializeBean 方法中会调用 applyBeanPostProcessorsBeforeInitialization 方法，该方法中会取出所有的 getBeanPostProcessors，并调用其 postProcessBeforeInitialization 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">applyBeanPostProcessorsBeforeInitialization</span><span class="params">(Object existingBean, String beanName)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> BeansException </span>&#123;</span><br><span class="line">    Object result = existingBean;</span><br><span class="line">    <span class="keyword">for</span> (BeanPostProcessor processor : getBeanPostProcessors()) &#123;</span><br><span class="line">        Object current = processor.postProcessBeforeInitialization(result, beanName);</span><br><span class="line">        <span class="keyword">if</span> (current == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125;</span><br><span class="line">        result = current;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Bean-的初始化方法"><a href="#Bean-的初始化方法" class="headerlink" title="Bean 的初始化方法"></a>Bean 的初始化方法</h2><p>执行完 postProcessBeforeInitialization 后，紧接着调用的是 invokeInitMethods 方法。该方法将会调用 Bean 的实例化方法。此时会调用我们自己定义的 invokeInitMethods 方法。如果实现了 InitializingBean 接口，则会调用 afterPropertiesSet 方法。如果有自定义 initMethod 方法，则调用自定义的 initMethod。<br>其实还有一个类似的 @PostConstruct 注解标注的方法，这个标注方法在 applyBeanPostProcessorsBeforeInitialization 中被执行。严格来说是初始化前方法，而不是初始化方法。因此 @PostConstruct，InitializingBean 接口，自定义 initMethod 方法是有执行顺序的。</p>
+<h2 id="Bean-初始化后的处理"><a href="#Bean-初始化后的处理" class="headerlink" title="Bean 初始化后的处理"></a>Bean 初始化后的处理</h2><p>AbstractAutowireCapableBeanFactory#applyBeanPostProcessorsAfterInitialization 方法时 Bean 初始化后的处理。同样，如果定义了 BeanPostProcessor，则会执行初始化后的逻辑。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">applyBeanPostProcessorsAfterInitialization</span><span class="params">(Object existingBean, String beanName)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> BeansException </span>&#123;</span><br><span class="line">    Object result = existingBean;</span><br><span class="line">    <span class="keyword">for</span> (BeanPostProcessor processor : getBeanPostProcessors()) &#123;</span><br><span class="line">        Object current = processor.postProcessAfterInitialization(result, beanName);</span><br><span class="line">        <span class="keyword">if</span> (current == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125;</span><br><span class="line">        result = current;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>初始化后逻辑执行完之后，还会尝试注册 Bean 的销毁回调.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">registerDisposableBeanIfNecessary(beanName, bean, mbd);</span><br></pre></td></tr></table></figure>
+
+<p>该处会根据是否实现 DisposableBean 接口或者自定义 destroy 方法来确定是否提供注册销毁回调方法。</p>
+<h2 id="Bean-销毁前的处理"><a href="#Bean-销毁前的处理" class="headerlink" title="Bean 销毁前的处理"></a>Bean 销毁前的处理</h2><p>BeanFactory 中需要手动调用 destroy，在 ApplicationContext 的 close 方法中。会执行到 DefaultSingletonBeanRegistry#destroyBean 方法，在该方法的后续调用中会调用到 postProcessBeforeDestruction。这段逻辑中可以执行 Bean 销毁前的回调逻辑。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!CollectionUtils.isEmpty(<span class="keyword">this</span>.beanPostProcessors)) &#123;</span><br><span class="line">    <span class="keyword">for</span> (DestructionAwareBeanPostProcessor processor : <span class="keyword">this</span>.beanPostProcessors) &#123;</span><br><span class="line">        processor.postProcessBeforeDestruction(<span class="keyword">this</span>.bean, <span class="keyword">this</span>.beanName);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Bean-的销毁"><a href="#Bean-的销毁" class="headerlink" title="Bean 的销毁"></a>Bean 的销毁</h2><p>Bean 的销毁，如果 Bean 实现了 DisposableBean 接口，则会调用重写了 DisposableBean 的 destroy 方法。如果有自定义销毁方法的话，则会执行自定义的销毁方法。<br>对应于初始化情况，销毁也有一个 @PreDestroy 注解标注的方法。使用该注解标注的方法会在 postProcessBeforeDestruction 中执行，所以严格上来说是销毁前的逻辑。<br>因此以上三个方法也是有顺序的，即 @PreDestroy -&gt; DisposableBean 接口 -&gt; 自定义销毁方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postProcessBeforeDestruction</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException </span>&#123;</span><br><span class="line">    LifecycleMetadata metadata = findLifecycleMetadata(bean.getClass());</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        metadata.invokeDestroyMethods(bean, beanName);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (InvocationTargetException ex) &#123;</span><br><span class="line">        String msg = <span class="string">&quot;Destroy method on bean with name &#x27;&quot;</span> + beanName + <span class="string">&quot;&#x27; threw an exception&quot;</span>;</span><br><span class="line">        <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">            logger.warn(msg, ex.getTargetException());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            logger.warn(msg + <span class="string">&quot;: &quot;</span> + ex.getTargetException());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">        logger.warn(<span class="string">&quot;Failed to invoke destroy method on bean with name &#x27;&quot;</span> + beanName + <span class="string">&quot;&#x27;&quot;</span>, ex);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h2>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Spring/" rel="tag"># Spring</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/09/20/%E8%AE%B0%E5%BD%95%E4%B8%80%E6%AC%A1%E7%94%A8-Wireshark-%E6%8A%93%E5%8F%96-TLS-%E5%8D%8F%E8%AE%AE%E6%8F%A1%E6%89%8B%E7%9A%84%E8%BF%87%E7%A8%8B/" rel="prev" title="记录一次用 Wireshark 抓取 TLS 协议握手的过程">
+      <i class="fa fa-chevron-left"></i> 记录一次用 Wireshark 抓取 TLS 协议握手的过程
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E5%85%83%E6%95%B0%E6%8D%AE-BeanDefinition-%E7%9A%84%E9%85%8D%E7%BD%AE%E5%8A%A0%E8%BD%BD%E4%B8%8E%E6%B3%A8%E5%86%8C"><span class="nav-text">Bean 元数据 BeanDefinition 的配置加载与注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-Class-%E7%9A%84%E5%8A%A0%E8%BD%BD"><span class="nav-text">Bean Class 的加载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E5%AE%9E%E4%BE%8B%E5%8C%96%E5%89%8D%E7%9A%84-postProcessor-%E5%9B%9E%E8%B0%83"><span class="nav-text">Bean 实例化前的 postProcessor 回调</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E4%BE%8B%E5%8C%96-Bean"><span class="nav-text">实例化 Bean</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E5%AE%9E%E4%BE%8B%E5%8C%96%E5%90%8E%E7%9A%84-postProcessor-%E5%9B%9E%E8%B0%83"><span class="nav-text">Bean 实例化后的 postProcessor 回调</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E5%B1%9E%E6%80%A7%E7%9A%84%E5%A1%AB%E5%85%85"><span class="nav-text">Bean 属性的填充</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Aware-%E6%8E%A5%E5%8F%A3%E5%9B%9E%E8%B0%83"><span class="nav-text">Aware 接口回调</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E5%88%9D%E5%A7%8B%E5%8C%96%E5%89%8D%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-text">Bean 初始化前的处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E6%96%B9%E6%B3%95"><span class="nav-text">Bean 的初始化方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E5%88%9D%E5%A7%8B%E5%8C%96%E5%90%8E%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-text">Bean 初始化后的处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E9%94%80%E6%AF%81%E5%89%8D%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-text">Bean 销毁前的处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E7%9A%84%E9%94%80%E6%AF%81"><span class="nav-text">Bean 的销毁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8E%E8%AE%B0"><span class="nav-text">后记</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="FFYzz"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">FFYzz</p>
+  <div class="site-description" itemprop="description">在自我鄙视中一步一步往上爬</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">30</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/FFYzz" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;FFYzz" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:cryptochen95@gmail.com" title="E-Mail → mailto:cryptochen95@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FFYzz</span>
+</div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://littleF.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://ffyzz.github.io/2020/10/31/Spring-Bean-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/";
+    this.page.identifier = "2020/10/31/Spring-Bean-的完整生命周期/";
+    this.page.title = "Spring Bean 的完整生命周期";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://littleF.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
