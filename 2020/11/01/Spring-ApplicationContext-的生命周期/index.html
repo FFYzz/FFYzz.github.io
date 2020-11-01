@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/timg.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/icon64.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/icon64.png">
+  <link rel="mask-icon" href="/images/icon64.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"ffyzz.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="前言前面一篇文章介绍了 Spring Bean 的生命周期，这篇文章将通过深入源码，了解 Spring 中 ApplicationContext 的生命周期。 本文整理基于的 Spring Framework 版本为 5.2.8.RELEASE。 了解 ApplicationContext 的生命周期，跟着源码调试一遍是最佳的了。下面是一个简单的 demo，可以用于调试 ApplicationCo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring ApplicationContext 的生命周期">
+<meta property="og:url" content="https://ffyzz.github.io/2020/11/01/Spring-ApplicationContext-%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/index.html">
+<meta property="og:site_name" content="Journey">
+<meta property="og:description" content="前言前面一篇文章介绍了 Spring Bean 的生命周期，这篇文章将通过深入源码，了解 Spring 中 ApplicationContext 的生命周期。 本文整理基于的 Spring Framework 版本为 5.2.8.RELEASE。 了解 ApplicationContext 的生命周期，跟着源码调试一遍是最佳的了。下面是一个简单的 demo，可以用于调试 ApplicationCo">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752gy1gk9k54ees2j20y80bp0ut.jpg">
+<meta property="article:published_time" content="2020-10-31T23:09:33.000Z">
+<meta property="article:modified_time" content="2020-11-01T04:28:17.869Z">
+<meta property="article:author" content="FFYzz">
+<meta property="article:tag" content="Spring">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752gy1gk9k54ees2j20y80bp0ut.jpg">
+
+<link rel="canonical" href="https://ffyzz.github.io/2020/11/01/Spring-ApplicationContext-%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Spring ApplicationContext 的生命周期 | Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/11/01/Spring-ApplicationContext-%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring ApplicationContext 的生命周期
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-11-01 07:09:33 / 修改时间：12:28:17" itemprop="dateCreated datePublished" datetime="2020-11-01T07:09:33+08:00">2020-11-01</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/11/01/Spring-ApplicationContext-%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/11/01/Spring-ApplicationContext-的生命周期/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>前面一篇文章介绍了 <a href="https://ffyzz.github.io/2020/10/31/Spring-Bean-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Spring Bean 的生命周期</a>，这篇文章将通过深入源码，了解 Spring 中 ApplicationContext 的生命周期。</p>
+<p>本文整理基于的 Spring Framework 版本为 5.2.8.RELEASE。</p>
+<p>了解 ApplicationContext 的生命周期，跟着源码调试一遍是最佳的了。下面是一个简单的 demo，可以用于调试 ApplicationContext 的生命周期。</p>
+<a id="more"></a>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ApplicationContextLifecycleDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        GenericApplicationContext context = <span class="keyword">new</span> GenericApplicationContext();</span><br><span class="line">        context.registerBeanDefinition(<span class="string">&quot;customizedLifecycle&quot;</span>, BeanDefinitionBuilder.rootBeanDefinition(CustomizedLifecycle.class).getBeanDefinition());</span><br><span class="line">        context.refresh();</span><br><span class="line">        context.start();</span><br><span class="line">        context.stop();</span><br><span class="line">        context.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CustomizedLifecycle</span> <span class="keyword">implements</span> <span class="title">Lifecycle</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">boolean</span> running = <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        running = <span class="keyword">true</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;CustomizedLifecycle 启动中....&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        running = <span class="keyword">false</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;CustomizedLifecycle 关闭中....&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isRunning</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> running;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ApplicationContext 的生命周期入口在 AbstractApplicationContext#refresh 方法。</p>
+<p>首先通过一张流程图，大概的看下 ApplicationContext 的生命周期流转。</p>
+<p><img src="http://ww1.sinaimg.cn/large/9be02752gy1gk9k54ees2j20y80bp0ut.jpg" alt="Spring-ApplicationContext-Lifecycle.png"></p>
+<p>下面将分析每一个生命周期的详细过程。</p>
+<h2 id="ApplicationContext-准备启动阶段"><a href="#ApplicationContext-准备启动阶段" class="headerlink" title="ApplicationContext 准备启动阶段"></a>ApplicationContext 准备启动阶段</h2><p>AbstractApplicationContext#prepareRefresh 准备启动过程中主要做了一下几件事情:</p>
+<ol>
+<li>记录启动时间 startupDate</li>
+<li>初始化 PropertySource</li>
+<li>创建 Environment 并检验 Environment 中必备的参数。</li>
+<li>初始化 Spring 早期事件监听器以及早期事件。</li>
+</ol>
+<h2 id="BeanFactory-的创建"><a href="#BeanFactory-的创建" class="headerlink" title="BeanFactory 的创建"></a>BeanFactory 的创建</h2><p>AbstractApplicationContext#obtainFreshBeanFactory 是一个空实现，所以 BeanFactory 的创建需要由子类去实现。以 AbstractRefreshableApplicationContext#refreshBeanFactory 为例:</p>
+<ol>
+<li>如果 AbstractRefreshableApplicationContext 已经关联了 BeanFactory，则销毁关联的 BeanFactory 中的 Bean 并取消关联。</li>
+<li>默认创建一个 DefaultListableBeanFactory 类型的 BeanFactory。</li>
+<li>设置 BeanFactory 的 serializationId。</li>
+<li>设置 BeanFactory 的属性，包括是否支持 BeanDefinition 的重定义已经是否允许循环的存在。</li>
+<li>加载 BeanDefinition。</li>
+<li>将 ApplicationContext 与 BeanFactory 进行关联。</li>
+</ol>
+<h2 id="准备-BeanFactory"><a href="#准备-BeanFactory" class="headerlink" title="准备 BeanFactory"></a>准备 BeanFactory</h2><p>AbstractApplicationContext#prepareBeanFactory 准备阶段主要是处理 BeanFactory 的一些属性相关的内容:</p>
+<ol>
+<li>设置 BeanFactory 的类加载器。</li>
+<li>初始化 SpringEL 处理器并设置给 BeanFactory。</li>
+<li>初始化 ResourceEditorRegistrar并设置给 BeanFactory。</li>
+<li>设置 ApplicationContextAware 处理器。</li>
+<li>注册内建依赖，BeanFactory / ResourceLoader / ApplicationEventPublisher / ApplicationContext。只能依赖注入，不能依赖查找。</li>
+<li>注册 ApplicationListenerDetector BeanPostProcessor。</li>
+<li>注册单例 Bean，包括 environment / systemProperties / systemEnvironment。</li>
+</ol>
+<h2 id="BeanFactory-的后置处理阶段"><a href="#BeanFactory-的后置处理阶段" class="headerlink" title="BeanFactory 的后置处理阶段"></a>BeanFactory 的后置处理阶段</h2><p>该阶段是留给 BeanFactory 的扩展点。</p>
+<p>AbstractApplicationContext#postProcessBeanFactory 同样也是一个空实现，具体实现由子类决定。这里以 AbstractRefreshableApplicationContext#postProcessBeanFactory 为例:</p>
+<ol>
+<li>注册了一个 ServletContextAwareProcessor。</li>
+<li>忽略了 ServletContextAware 以及 ServletConfigAware 的依赖接口，使得其不能被依赖注入。</li>
+<li>注册了 request / application / session 三类 Scope。</li>
+<li>注册 Environment 相关的 Bean。</li>
+</ol>
+<h2 id="BeanFactory-PostProcessors-的调用"><a href="#BeanFactory-PostProcessors-的调用" class="headerlink" title="BeanFactory PostProcessors 的调用"></a>BeanFactory PostProcessors 的调用</h2><p>AbstractApplicationContext#invokeBeanFactoryPostProcessors 阶段是 BeanFactory 后置处理的调用，也就是逻辑执行。<br>实现 BeanFactoryPostProcessor 接口的处理器类的执行，比如 BeanDefinitionRegistryPostProcessor。</p>
+<h2 id="Bean-的-PostProcessor-注册"><a href="#Bean-的-PostProcessor-注册" class="headerlink" title="Bean 的 PostProcessor 注册"></a>Bean 的 PostProcessor 注册</h2><p>该阶段是 Bean 的扩展点。</p>
+<ol>
+<li>首先获取到当前上下文中所有的实现了 BeanPostProcessor 的 Bean 的 beanName。</li>
+<li>对 priorityOrdered / Ordered / 没有标记 Ordered 的 PostProcessor 归类处理，分别放到不同的 List 中。</li>
+<li>对 priorityOrdered List 中的 BeanPostProcessor 进行依赖查找并注册。</li>
+<li>对 ordered List 中的 BeanPostProcessor 进行依赖查找并进行注册。</li>
+<li>对 none ordered List 中的 BeanPostProcessor 进行依赖查找并进行注册。</li>
+<li>额外再注册一个 ApplicationListenerDetector 类型的 BeanPostProcessor。</li>
+</ol>
+<h2 id="内建-MessageSource-的初始化"><a href="#内建-MessageSource-的初始化" class="headerlink" title="内建 MessageSource 的初始化"></a>内建 MessageSource 的初始化</h2><p>AbstractApplicationContext#initMessageSource 该阶段会创建一个 DelegatingMessageSource 实例，并将其注册为单例 Bean，bean Name 为 “messageSource”。</p>
+<h2 id="内建-ApplicationEventMulticaster-的初始化"><a href="#内建-ApplicationEventMulticaster-的初始化" class="headerlink" title="内建 ApplicationEventMulticaster 的初始化"></a>内建 ApplicationEventMulticaster 的初始化</h2><p>AbstractApplicationContext#initApplicationEventMulticaster 该阶段会创建一个 SimpleApplicationEventMulticaster 的实例，并将其注册为单例 Bean，Bean Name 为 “applicationEventMulticaster”。</p>
+<h2 id="ApplicationContext-的刷新阶段"><a href="#ApplicationContext-的刷新阶段" class="headerlink" title="ApplicationContext 的刷新阶段"></a>ApplicationContext 的刷新阶段</h2><p>AbstractApplicationContext#onRefresh 是一个空实现，具体由子类实现，以 AbstractRefreshableWebApplicationContext 为例，可以进行初始化主题等操作，该阶段不可扩展。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onRefresh</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.themeSource = UiApplicationContextUtils.initThemeSource(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ApplicationContext-事件监听器注册"><a href="#ApplicationContext-事件监听器注册" class="headerlink" title="ApplicationContext 事件监听器注册"></a>ApplicationContext 事件监听器注册</h2><p>AbstractApplicationContext#registerListeners 中主要做了三件事情:</p>
+<ol>
+<li>获取当前应用上下文的 ApplicationListener ，并将其添加到 applicationEventMulticaster 中。包括一些早期的ApplicationListener。</li>
+<li>通过依赖查找，查找 ApplicationListener 类型的 Bean。同样将其加入到 applicationEventMulticaster 中。</li>
+<li>获取早期的 earlyApplicationEvents ，进行广播。</li>
+</ol>
+<h2 id="BeanFactory-的初始化完成阶段"><a href="#BeanFactory-的初始化完成阶段" class="headerlink" title="BeanFactory 的初始化完成阶段"></a>BeanFactory 的初始化完成阶段</h2><p>AbstractApplicationContext#finishBeanFactoryInitialization 处理 Bean 完成阶段。</p>
+<ol>
+<li>如果当前 beanFactory 中存在 conversionService Bean，则将其与 BeanFactory 关联。</li>
+<li>添加 StringValueResolver 解析器，用于处理占位符。</li>
+<li>依赖查找 LoadTimeWeaverAware，与 AOP 相关。</li>
+<li>设置临时的 ClassLoader 为 null。</li>
+<li><strong>初始化所有非延迟加载的单例 Bean</strong>。</li>
+</ol>
+<h2 id="ApplicationContext-结束刷新阶段-ApplicationContext-启动完成阶段"><a href="#ApplicationContext-结束刷新阶段-ApplicationContext-启动完成阶段" class="headerlink" title="ApplicationContext 结束刷新阶段/ApplicationContext 启动完成阶段"></a>ApplicationContext 结束刷新阶段/ApplicationContext 启动完成阶段</h2><p>[为什么会说是启动完成阶段?] 因为一般把 refresh 称为 ApplicationContext 的启动方法，finishRefresh 是该方法调用的最后一个方法，所以将其称为启动完成。</p>
+<p>AbstractApplicationContext#finishRefresh 方法用于结束 ApplicationContext 启动的收尾工作:</p>
+<ol>
+<li>清除 ResourceLoader 的缓存。</li>
+<li>初始化生命周期处理器。自定义的生命周期处理器 LifecycleProcessor 将会在这里被初始化，如果没有自定义生命周期处理器，则会默认创建一个 DefaultLifecycleProcessor。并将注册成为一个单例 Bean。</li>
+<li>调用生命周期处理器的 LifecycleProcessor#onRefresh 方法。</li>
+<li>发布应用上下文 Refreshed 事件。</li>
+<li>将 ApplicationContext 注册到 LiveBeansView 中。</li>
+</ol>
+<h2 id="ApplicationContext-启动阶段"><a href="#ApplicationContext-启动阶段" class="headerlink" title="ApplicationContext 启动阶段"></a>ApplicationContext 启动阶段</h2><p>ApplicationContext 的启动调用 start() 方法，并会发布 ContextStartedEvent。</p>
+<h2 id="ApplicationContext-停止阶段"><a href="#ApplicationContext-停止阶段" class="headerlink" title="ApplicationContext 停止阶段"></a>ApplicationContext 停止阶段</h2><p>ApplicationContext 的停止调用 stop() 方法，并会发布 ContextStoppedEvent。</p>
+<h2 id="ApplicationContext-关闭阶段"><a href="#ApplicationContext-关闭阶段" class="headerlink" title="ApplicationContext 关闭阶段"></a>ApplicationContext 关闭阶段</h2><p>ApplicationContext 的关闭调用 close() 方法。close 阶段做的事情比较多:</p>
+<ol>
+<li>更新状态标识。</li>
+<li>发布 ContextClosedEvent 事件。</li>
+<li>关闭 LifecycleProcessor，此时会回调 LifecycleProcessor 的 onClose 方法。</li>
+<li>销毁 Spring Beans。</li>
+<li>关闭 BeanFactory。</li>
+<li>回调 ApplicationContext 的 onClose 方法。</li>
+<li>以及注册一个 SpringShutDownHookThread。</li>
+</ol>
+<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h2>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Spring/" rel="tag"># Spring</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/31/Spring-Bean-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" rel="prev" title="Spring Bean 的完整生命周期">
+      <i class="fa fa-chevron-left"></i> Spring Bean 的完整生命周期
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ApplicationContext-%E5%87%86%E5%A4%87%E5%90%AF%E5%8A%A8%E9%98%B6%E6%AE%B5"><span class="nav-text">ApplicationContext 准备启动阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BeanFactory-%E7%9A%84%E5%88%9B%E5%BB%BA"><span class="nav-text">BeanFactory 的创建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%86%E5%A4%87-BeanFactory"><span class="nav-text">准备 BeanFactory</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BeanFactory-%E7%9A%84%E5%90%8E%E7%BD%AE%E5%A4%84%E7%90%86%E9%98%B6%E6%AE%B5"><span class="nav-text">BeanFactory 的后置处理阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BeanFactory-PostProcessors-%E7%9A%84%E8%B0%83%E7%94%A8"><span class="nav-text">BeanFactory PostProcessors 的调用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean-%E7%9A%84-PostProcessor-%E6%B3%A8%E5%86%8C"><span class="nav-text">Bean 的 PostProcessor 注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%85%E5%BB%BA-MessageSource-%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">内建 MessageSource 的初始化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%85%E5%BB%BA-ApplicationEventMulticaster-%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">内建 ApplicationEventMulticaster 的初始化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ApplicationContext-%E7%9A%84%E5%88%B7%E6%96%B0%E9%98%B6%E6%AE%B5"><span class="nav-text">ApplicationContext 的刷新阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ApplicationContext-%E4%BA%8B%E4%BB%B6%E7%9B%91%E5%90%AC%E5%99%A8%E6%B3%A8%E5%86%8C"><span class="nav-text">ApplicationContext 事件监听器注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BeanFactory-%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E5%AE%8C%E6%88%90%E9%98%B6%E6%AE%B5"><span class="nav-text">BeanFactory 的初始化完成阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ApplicationContext-%E7%BB%93%E6%9D%9F%E5%88%B7%E6%96%B0%E9%98%B6%E6%AE%B5-ApplicationContext-%E5%90%AF%E5%8A%A8%E5%AE%8C%E6%88%90%E9%98%B6%E6%AE%B5"><span class="nav-text">ApplicationContext 结束刷新阶段&#x2F;ApplicationContext 启动完成阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ApplicationContext-%E5%90%AF%E5%8A%A8%E9%98%B6%E6%AE%B5"><span class="nav-text">ApplicationContext 启动阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ApplicationContext-%E5%81%9C%E6%AD%A2%E9%98%B6%E6%AE%B5"><span class="nav-text">ApplicationContext 停止阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ApplicationContext-%E5%85%B3%E9%97%AD%E9%98%B6%E6%AE%B5"><span class="nav-text">ApplicationContext 关闭阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8E%E8%AE%B0"><span class="nav-text">后记</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="FFYzz"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">FFYzz</p>
+  <div class="site-description" itemprop="description">在自我鄙视中一步一步往上爬</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">31</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/FFYzz" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;FFYzz" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:cryptochen95@gmail.com" title="E-Mail → mailto:cryptochen95@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FFYzz</span>
+</div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://littleF.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://ffyzz.github.io/2020/11/01/Spring-ApplicationContext-%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/";
+    this.page.identifier = "2020/11/01/Spring-ApplicationContext-的生命周期/";
+    this.page.title = "Spring ApplicationContext 的生命周期";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://littleF.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
