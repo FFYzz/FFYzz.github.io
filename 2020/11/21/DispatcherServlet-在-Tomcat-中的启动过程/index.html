@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/timg.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/icon64.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/icon64.png">
+  <link rel="mask-icon" href="/images/icon64.png" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"ffyzz.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="通常在一个 Web 应用中，会通过将 Web 程序部署到类似于 Tomcat&#x2F;Jetty 这类 Web 容器中去。Tomcat 在整个系统扮演的角色主要有两个，一个是面向 HTTP 请求的 HTTP 服务器，另一个是后面用于处理后端逻辑的 Servlet 容器。SpringMVC 简单的来说就是一个 Servlet。运行在 Servlet 容器中。 这篇文章将简单概述 SpringMVC 的初始化">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DispatcherServlet 在 Tomcat 中的启动过程">
+<meta property="og:url" content="https://ffyzz.github.io/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Journey">
+<meta property="og:description" content="通常在一个 Web 应用中，会通过将 Web 程序部署到类似于 Tomcat&#x2F;Jetty 这类 Web 容器中去。Tomcat 在整个系统扮演的角色主要有两个，一个是面向 HTTP 请求的 HTTP 服务器，另一个是后面用于处理后端逻辑的 Servlet 容器。SpringMVC 简单的来说就是一个 Servlet。运行在 Servlet 容器中。 这篇文章将简单概述 SpringMVC 的初始化">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-11-21T12:01:43.000Z">
+<meta property="article:modified_time" content="2020-11-22T05:05:15.230Z">
+<meta property="article:author" content="FFYzz">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://ffyzz.github.io/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>DispatcherServlet 在 Tomcat 中的启动过程 | Journey</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Journey</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DispatcherServlet 在 Tomcat 中的启动过程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-11-21 20:01:43" itemprop="dateCreated datePublished" datetime="2020-11-21T20:01:43+08:00">2020-11-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-11-22 13:05:15" itemprop="dateModified" datetime="2020-11-22T13:05:15+08:00">2020-11-22</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/Spring-MVC/" itemprop="url" rel="index"><span itemprop="name">Spring MVC</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/11/21/DispatcherServlet-在-Tomcat-中的启动过程/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>通常在一个 Web 应用中，会通过将 Web 程序部署到类似于 Tomcat/Jetty 这类 Web 容器中去。Tomcat 在整个系统扮演的角色主要有两个，一个是面向 HTTP 请求的 HTTP 服务器，另一个是后面用于处理后端逻辑的 Servlet 容器。SpringMVC 简单的来说就是一个 Servlet。运行在 Servlet 容器中。</p>
+<p>这篇文章将简单概述 SpringMVC 的初始化过程。</p>
+<a id="more"></a>
+
+<h2 id="在-Tomcat-启动应用程序"><a href="#在-Tomcat-启动应用程序" class="headerlink" title="在 Tomcat 启动应用程序"></a>在 Tomcat 启动应用程序</h2><p>Tomcat 会扫描 webapps 目录下的所有的应用，并且依次进行加载。<br>打包的应用程序会被放到 webapps 目录下。随后，Tomcat 会读取应用内部的 WEB-INF 目录下的 web.xml 文件，对该文件进行解析，包括解析 servlet，该 servlet 的 load_on_startup 的值等属性。这里插一句。在 Tomcat 中，一个 web.xml 文件中读取出来的所有的 servlet 会存储在 TreeMap 的数据结构中，key 为 load_on_startup 的值，value 为一个 List，List 中存的是 Wrapper(servlet)。只有 load_on_startup 的值大于等于 0 时才会被放入到 TreeMap 中。并且值越低，启动的优先级越高。servlet 的加载就是通过 load 方法进行加载的。所以，这里的 wrapper.load() 就是 servlet 加载的入口。下面的代码就是 Tomcat 中加载 Wrapper 的入口。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">loadOnStartup</span><span class="params">(Container children[])</span> </span>&#123;</span><br><span class="line">    <span class="comment">// Collect &quot;load on startup&quot; servlets that need to be initialized</span></span><br><span class="line">    TreeMap&lt;Integer, ArrayList&lt;Wrapper&gt;&gt; map = <span class="keyword">new</span> TreeMap&lt;&gt;();$$</span><br><span class="line">    <span class="keyword">for</span> (Container child : children) &#123;</span><br><span class="line">        Wrapper wrapper = (Wrapper) child;</span><br><span class="line">        <span class="keyword">int</span> loadOnStartup = wrapper.getLoadOnStartup();</span><br><span class="line">        <span class="keyword">if</span> (loadOnStartup &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        Integer key = Integer.valueOf(loadOnStartup);</span><br><span class="line">        ArrayList&lt;Wrapper&gt; list = map.get(key);</span><br><span class="line">        <span class="keyword">if</span> (list == <span class="keyword">null</span>) &#123;</span><br><span class="line">            list = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">            map.put(key, list);</span><br><span class="line">        &#125;</span><br><span class="line">        list.add(wrapper);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Load the collected &quot;load on startup&quot; servlets</span></span><br><span class="line">    <span class="keyword">for</span> (ArrayList&lt;Wrapper&gt; list : map.values()) &#123;</span><br><span class="line">        <span class="keyword">for</span> (Wrapper wrapper : list) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                wrapper.load();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (ServletException e) &#123;</span><br><span class="line">                getLogger().error(sm.getString(<span class="string">&quot;standardContext.loadOnStartup.loadException&quot;</span>,</span><br><span class="line">                      getName(), wrapper.getName()), StandardWrapper.getRootCause(e));</span><br><span class="line">                <span class="comment">// <span class="doctag">NOTE:</span> load errors (including a servlet that throws</span></span><br><span class="line">                <span class="comment">// UnavailableException from the init() method) are NOT</span></span><br><span class="line">                <span class="comment">// fatal to application startup</span></span><br><span class="line">                <span class="comment">// unless failCtxIfServletStartFails=&quot;true&quot; is specified</span></span><br><span class="line">                <span class="keyword">if</span>(getComputedFailCtxIfServletStartFails()) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Servlet-的加载流程"><a href="#Servlet-的加载流程" class="headerlink" title="Servlet 的加载流程"></a>Servlet 的加载流程</h2><p>StandardWrapper#load() 方法对 Servlet 进行加载。load 方法的主要逻辑在 loadServlet 方法中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> Servlet <span class="title">loadServlet</span><span class="params">()</span> <span class="keyword">throws</span> ServletException </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">    Servlet servlet;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">long</span> t1=System.currentTimeMillis();</span><br><span class="line">        <span class="comment">// Complain if no servlet class has been specified</span></span><br><span class="line">        <span class="keyword">if</span> (servletClass == <span class="keyword">null</span>) &#123;</span><br><span class="line">            unavailable(<span class="keyword">null</span>);</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ServletException</span><br><span class="line">                (sm.getString(<span class="string">&quot;standardWrapper.notClass&quot;</span>, getName()));</span><br><span class="line">        &#125;</span><br><span class="line">        InstanceManager instanceManager = ((StandardContext)getParent()).getInstanceManager();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            servlet = (Servlet) instanceManager.newInstance(servletClass);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassCastException e) &#123;</span><br><span class="line">            unavailable(<span class="keyword">null</span>);</span><br><span class="line">            <span class="comment">// Restore the context ClassLoader</span></span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ServletException</span><br><span class="line">                (sm.getString(<span class="string">&quot;standardWrapper.notServlet&quot;</span>, servletClass), e);</span><br><span class="line">        &#125; </span><br><span class="line"></span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">        </span><br><span class="line">        initServlet(servlet);</span><br><span class="line">        fireContainerEvent(<span class="string">&quot;load&quot;</span>, <span class="keyword">this</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> servlet;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述方法中删去了部分不重要的代码，仅留下了比较重要的代码。上述代码中可以看到调用了 InstanceManager 的 newInstance 的方法，创建了一个 servlet。虽然编译类型为 Servlet 类型，但是实际上的运行时类型为 DispatcherServlet 类型。</p>
+<p>随后调用了 initServlet 方法，对 servlet 进行初始化。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">initServlet</span><span class="params">(Servlet servlet)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> ServletException </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">//protected final StandardWrapperFacade facade = new StandardWrapperFacade(this);</span></span><br><span class="line">        <span class="comment">// StandardWrapperFacade 实现了 ServletConfig 接口</span></span><br><span class="line">        servlet.init(facade);</span><br><span class="line">        instanceInitialized = <span class="keyword">true</span>;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>初始化方法中调用了 servlet 的 init 方法。最终调到了 HttpServletBean#init() 方法。 init 方法的主要功能就是将属性设置到 Dispatcher 中。比如把 web.xml 中的 ContextConfigLocation 属性<br>设置给 DispatcherServlet。设置之后在初始化 Spring 容器的时候就能够直接获取容器的配置文件。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> <span class="keyword">throws</span> ServletException </span>&#123;</span><br><span class="line">    <span class="comment">// Set bean properties from init parameters.</span></span><br><span class="line">    <span class="comment">// 将 servlet 中配置的参数封装进 PropertyValues</span></span><br><span class="line">    PropertyValues pvs = <span class="keyword">new</span> ServletConfigPropertyValues(getServletConfig(), <span class="keyword">this</span>.requiredProperties);</span><br><span class="line">    <span class="keyword">if</span> (!pvs.isEmpty()) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 将当前对象 servlet 封装成 BeanWrapper</span></span><br><span class="line">            BeanWrapper bw = PropertyAccessorFactory.forBeanPropertyAccess(<span class="keyword">this</span>);</span><br><span class="line">            <span class="comment">// 创建 ResourceLoader</span></span><br><span class="line">            ResourceLoader resourceLoader = <span class="keyword">new</span> ServletContextResourceLoader(getServletContext());</span><br><span class="line">            <span class="comment">// 注册自定义的 PropertyEditor</span></span><br><span class="line">            bw.registerCustomEditor(Resource.class, <span class="keyword">new</span> ResourceEditor(resourceLoader, getEnvironment()));</span><br><span class="line">            initBeanWrapper(bw);</span><br><span class="line">            <span class="comment">// 属性设置进去</span></span><br><span class="line">            bw.setPropertyValues(pvs, <span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">catch</span> (BeansException ex) &#123;</span><br><span class="line">            <span class="keyword">if</span> (logger.isErrorEnabled()) &#123;</span><br><span class="line">                logger.error(<span class="string">&quot;Failed to set bean properties on servlet &#x27;&quot;</span> + getServletName() + <span class="string">&quot;&#x27;&quot;</span>, ex);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">throw</span> ex;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Let subclasses do whatever initialization they like.</span></span><br><span class="line">    <span class="comment">// 初始化 Servlet Bean</span></span><br><span class="line">    <span class="comment">// 模板方法</span></span><br><span class="line">    initServletBean();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>PropertyValues 中保存了 Spring xml 文件路径(ContextConfigLocation)。 属性设置之后，后续就是 Spring 那一套了。随后调用 initServletBean 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">initServletBean</span><span class="params">()</span> <span class="keyword">throws</span> ServletException </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 初始化 webApplicationContext</span></span><br><span class="line">        <span class="keyword">this</span>.webApplicationContext = initWebApplicationContext();</span><br><span class="line">        <span class="comment">// WebApplicationContext 已经启动</span></span><br><span class="line">        <span class="comment">// 初始化 FrameworkServlet</span></span><br><span class="line">        <span class="comment">// 模板方法</span></span><br><span class="line">        initFrameworkServlet();</span><br><span class="line"></span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> WebApplicationContext <span class="title">createWebApplicationContext</span><span class="params">(<span class="meta">@Nullable</span> ApplicationContext parent)</span> </span>&#123;</span><br><span class="line">    Class&lt;?&gt; contextClass = getContextClass();</span><br><span class="line">    <span class="keyword">if</span> (!ConfigurableWebApplicationContext.class.isAssignableFrom(contextClass)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ApplicationContextException(</span><br><span class="line">                <span class="string">&quot;Fatal initialization error in servlet with name &#x27;&quot;</span> + getServletName() +</span><br><span class="line">                <span class="string">&quot;&#x27;: custom WebApplicationContext class [&quot;</span> + contextClass.getName() +</span><br><span class="line">                <span class="string">&quot;] is not of type ConfigurableWebApplicationContext&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 默认创建一个 XMLWebApplicationContext 类型的应用上下文</span></span><br><span class="line">    ConfigurableWebApplicationContext wac =</span><br><span class="line">            (ConfigurableWebApplicationContext) BeanUtils.instantiateClass(contextClass);</span><br><span class="line">    wac.setEnvironment(getEnvironment());</span><br><span class="line">    wac.setParent(parent);</span><br><span class="line">    String configLocation = getContextConfigLocation();</span><br><span class="line">    <span class="keyword">if</span> (configLocation != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">// 将配置的 xml 文件设置进去</span></span><br><span class="line">        <span class="comment">// 一般为 [servletName]-Servlet.xml</span></span><br><span class="line">        wac.setConfigLocation(configLocation);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 启动容器</span></span><br><span class="line">    configureAndRefreshWebApplicationContext(wac);</span><br><span class="line">    <span class="keyword">return</span> wac;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>前面提到还没有关联 IOC 容器，initServletBean 方法中就通过调用 initWebApplicationContext() 方法对 IOC 容器进行了初始化。初始化是通过调用 FrameworkServlet#createWebApplicationContext(ApplicationContext) 方法来进行的。通过创建一个 ConfigurableWebApplicationContext 类型的容器(具体的类型为 XMLWebApplicationContext)，设置其配置文件路径，随后就是 Spring 容器的启动了。</p>
+<p>容器启动的过程中回去加载 Spring 配置文件中的 BeanDefinition。随后在 AbstractApplicationContext#finishBeanFactoryInitialization 方法中对 Bean 进行初始化。包括一些 Controller 或者一些注解驱动等标签解析后相关的 Bean。</p>
+<p>在 Spring 容器启动的最后，会调用到 finishRefresh() 方法，该方法中会发布一个 ContextRefreshedEvent 事件。所有监听了该事件的监听器会收到该事件的通知。因为 FrameworkServlet#configureAndRefreshWebApplicationContext 方法中在启动容器之前注册了一个 FrameworkServlet 内部的 ContextRefreshListener 监听器，可以监听 ContextRefreshedEvent 事件。因此当发布了 ContextRefreshedEvent 事件的时候会回调 onApplicationEvent 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onApplicationEvent</span><span class="params">(ContextRefreshedEvent event)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 置为 true，表示已经启动</span></span><br><span class="line">    <span class="keyword">this</span>.refreshEventReceived = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>.onRefreshMonitor) &#123;</span><br><span class="line">        <span class="comment">// 调到子类，这里会调到 DispatcherServlet 的 onRefresh 方法</span></span><br><span class="line">        <span class="comment">// 将当前的 webApplicationContext 传进去</span></span><br><span class="line">        onRefresh(event.getApplicationContext());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onRefresh</span><span class="params">(ApplicationContext context)</span> </span>&#123;</span><br><span class="line">    initStrategies(context);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>回调方法中最后执行到了 initStrategies 方法，该方法会初始化 DispatcherServlet 中用到的九大组件。</p>
+<h2 id="DispatcherServlet-的-initStrategies"><a href="#DispatcherServlet-的-initStrategies" class="headerlink" title="DispatcherServlet 的 initStrategies"></a>DispatcherServlet 的 initStrategies</h2><p>initStrategies 中会初始化九大组件。默认需要初始化的组件定义在 DispatcherServlet.properties 文件中。如果已经初始化，已经初始化是指前面在 Spring 容器启动过程中已经注册成为一个 Bean，则不再进行初始化。若自定义了指定名称的 Bean，则不会初始化 DispatcherServlet.properties 文件中定义的 Bean，而是初始化自定义的 Bean。当然不同的组件根据需要也分别会选择进行初始化或者不初始化。下面代码注释中标明了是否需要初始化的情况。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">initStrategies</span><span class="params">(ApplicationContext context)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// MultipartResolver 可以不需要</span></span><br><span class="line">    initMultipartResolver(context);</span><br><span class="line">    <span class="comment">// 如果没有指定会创建一个默认的 LocaleResolver AcceptHeaderLocaleResolver</span></span><br><span class="line">    initLocaleResolver(context);</span><br><span class="line">    <span class="comment">// 如果没有指定会创建一个默认的 ThemeResolver FixedThemeResolver</span></span><br><span class="line">    initThemeResolver(context);</span><br><span class="line">    <span class="comment">// 如果没有指定会创建默认的 HandlerMapping:</span></span><br><span class="line">    <span class="comment">// FixedThemeResolverBeanNameUrlHandlerMapping</span></span><br><span class="line">    <span class="comment">// RequestMappingHandlerMapping</span></span><br><span class="line">    <span class="comment">// RouterFunctionMapping</span></span><br><span class="line">    initHandlerMappings(context);</span><br><span class="line">    <span class="comment">// 如果没有指定会创建默认的 HandlerAdapter:</span></span><br><span class="line">    <span class="comment">// HttpRequestHandlerAdapter</span></span><br><span class="line">    <span class="comment">// SimpleControllerHandlerAdapter</span></span><br><span class="line">    <span class="comment">// RequestMappingHandlerAdapter</span></span><br><span class="line">    <span class="comment">// HandlerFunctionAdapter</span></span><br><span class="line">    initHandlerAdapters(context);</span><br><span class="line">    <span class="comment">// 如果没有指定会创建默认的 HandlerExceptionResolver:</span></span><br><span class="line">    <span class="comment">// ExceptionHandlerExceptionResolver</span></span><br><span class="line">    <span class="comment">// ResponseStatusExceptionResolver</span></span><br><span class="line">    <span class="comment">// DefaultHandlerExceptionResolver</span></span><br><span class="line">    initHandlerExceptionResolvers(context);</span><br><span class="line">    <span class="comment">// 如果没有指定会创建一个默认的 RequestToViewNameTranslator DefaultRequestToViewNameTranslator</span></span><br><span class="line">    initRequestToViewNameTranslator(context);</span><br><span class="line">    <span class="comment">// 如果没有指定会创建默认的 ViewResolvers:</span></span><br><span class="line">    <span class="comment">// 可以有多个</span></span><br><span class="line">    <span class="comment">// InternalResourceViewResolver</span></span><br><span class="line">    initViewResolvers(context);</span><br><span class="line">    <span class="comment">// 如果没有指定会创建默认的 FlashMapManager:SessionFlashMapManager</span></span><br><span class="line">    initFlashMapManager(context);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>初始化之后的实例因为是 prototype 类型，因为 IOC 容器并不会维护这些实例。仅仅通过 Spring 来创建这些对象。这些对象都会被赋给 DispatcherServlet 的属性中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> MultipartResolver multipartResolver;</span><br><span class="line"><span class="keyword">private</span> LocaleResolver localeResolver;</span><br><span class="line"><span class="keyword">private</span> ThemeResolver themeResolver;</span><br><span class="line"><span class="keyword">private</span> List&lt;HandlerMapping&gt; handlerMappings;</span><br><span class="line"><span class="keyword">private</span> List&lt;HandlerAdapter&gt; handlerAdapters;</span><br><span class="line"><span class="keyword">private</span> List&lt;HandlerExceptionResolver&gt; handlerExceptionResolvers;</span><br><span class="line"><span class="keyword">private</span> RequestToViewNameTranslator viewNameTranslator;</span><br><span class="line"><span class="keyword">private</span> FlashMapManager flashMapManager;</span><br><span class="line"><span class="keyword">private</span> List&lt;ViewResolver&gt; viewResolvers;</span><br></pre></td></tr></table></figure>
+
+<p>至此，DispatcherServlet 的加载过程就全部完成了，后续就是等待请求的到来，以及对请求的处理了。</p>
+<h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/11/01/VS-Code-%E4%B8%AD%E6%84%89%E5%BF%AB%E5%9C%B0%E9%98%85%E8%AF%BB-Redis-%E6%BA%90%E7%A0%81/" rel="prev" title="VS Code 中愉快地阅读 Redis 源码">
+      <i class="fa fa-chevron-left"></i> VS Code 中愉快地阅读 Redis 源码
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/11/21/SpringMVC-%E5%9C%A8%E4%B8%80%E4%B8%AA%E8%AF%B7%E6%B1%82%E4%B8%AD%E6%89%AE%E6%BC%94%E7%9A%84%E8%A7%92%E8%89%B2/" rel="next" title="SpringMVC 在一个请求中扮演的角色">
+      SpringMVC 在一个请求中扮演的角色 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8-Tomcat-%E5%90%AF%E5%8A%A8%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F"><span class="nav-text">在 Tomcat 启动应用程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Servlet-%E7%9A%84%E5%8A%A0%E8%BD%BD%E6%B5%81%E7%A8%8B"><span class="nav-text">Servlet 的加载流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DispatcherServlet-%E7%9A%84-initStrategies"><span class="nav-text">DispatcherServlet 的 initStrategies</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-text">推荐阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="FFYzz"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">FFYzz</p>
+  <div class="site-description" itemprop="description">在自我鄙视中一步一步往上爬</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">42</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/FFYzz" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;FFYzz" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:cryptochen95@gmail.com" title="E-Mail → mailto:cryptochen95@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FFYzz</span>
+</div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://littleF.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://ffyzz.github.io/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/";
+    this.page.identifier = "2020/11/21/DispatcherServlet-在-Tomcat-中的启动过程/";
+    this.page.title = "DispatcherServlet 在 Tomcat 中的启动过程";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://littleF.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

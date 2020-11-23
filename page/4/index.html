@@ -164,7 +164,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/01/12/JNI-tutorial-%E2%85%A1/">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -178,7 +178,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2020/01/12/JNI-tutorial-%E2%85%A1/" class="post-title-link" itemprop="url">JNI-tutorial-Ⅱ</a>
+            <a href="/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/" class="post-title-link" itemprop="url">Floyd's Cycle Detection Algorithm</a>
         </h2>
 
         <div class="post-meta">
@@ -187,16 +187,19 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2020-01-12 16:38:48" itemprop="dateCreated datePublished" datetime="2020-01-12T16:38:48+08:00">2020-01-12</time>
+              <time title="创建时间：2020-08-05 15:05:17 / 修改时间：19:17:47" itemprop="dateCreated datePublished" datetime="2020-08-05T15:05:17+08:00">2020-08-05</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-08-05 19:17:39" itemprop="dateModified" datetime="2020-08-05T19:17:39+08:00">2020-08-05</time>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
               </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/" itemprop="url" rel="index"><span itemprop="name">Algorithm</span></a>
+                </span>
+            </span>
 
           
   
@@ -207,8 +210,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2020/01/12/JNI-tutorial-%E2%85%A1/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/01/12/JNI-tutorial-Ⅱ/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/Floyd-s-Cycle-Detection-Algorithm/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -223,10 +226,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>在上一篇文章中 <a href="https://ffyzz.github.io/2020/01/07/JNI-tutorial/">JNI-tutorial-Ⅰ</a> ，介绍了 JNI 的基本使用。其中在 Java 中声明的 native 方法与 C/C++ 中函数关联的方法使用了静态注册的方法。即通过生成特定签名的函数声明头文件。<br>除此之外，还有一种动态注册的方法，使用该方法可以更加灵活的进行 JNI 编程。JDK 中的 native 方法的注册就是使用的动态注册的方式。本文将介绍动态注册的方式，并以 JDK Object 类中的动态注册为例进行说明。</p>
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近在刷 LeetCode 的时候，在 Discuss 区看到有人提了一个 Floyd’s Cycle Detection Algorithm(弗洛伊德循环检测算法)。咋一看，是个从来没了解的算法，很好奇。于是就继续看了下去。大概扫了一眼代码实现后，发现这个看起来很玄乎的算法自己以前也应用过。记得很清楚是用在了检测链表存不存在环的一道题目上。那道题的解法中使用了快慢指针，两个指针同时开始移动。快指针每次移动两步，慢指针每次移动一步。如果链表中存在环，那么慢指针与快指针最终一定会相遇。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2020/01/12/JNI-tutorial-%E2%85%A1/#more" rel="contents">
+              <a class="btn" href="/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -250,7 +253,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/01/07/JNI-tutorial-%E2%85%A0/">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -264,7 +267,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2020/01/07/JNI-tutorial-%E2%85%A0/" class="post-title-link" itemprop="url">JNI tutorial Ⅰ</a>
+            <a href="/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ThreadLocal 源码全解析</a>
         </h2>
 
         <div class="post-meta">
@@ -273,16 +276,10 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2020-01-07 16:47:21" itemprop="dateCreated datePublished" datetime="2020-01-07T16:47:21+08:00">2020-01-07</time>
+              <time title="创建时间：2020-08-05 14:35:17 / 修改时间：19:17:17" itemprop="dateCreated datePublished" datetime="2020-08-05T14:35:17+08:00">2020-08-05</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-08-05 19:17:40" itemprop="dateModified" datetime="2020-08-05T19:17:40+08:00">2020-08-05</time>
-              </span>
 
           
   
@@ -293,8 +290,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2020/01/07/JNI-tutorial-%E2%85%A0/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/01/07/JNI-tutorial-Ⅰ/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/ThreadLocal-源码全解析/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -309,10 +306,681 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>这是一篇译文，在 Google 上搜索 JNI 相关的文章的时候，输入关键词 JNI tutorial，第一篇文章就是准备翻译的文章了。看了下目录，感觉还是挺不错的。于是乎决定选择这篇文章作为入门。顺便在翻译的同时写一些自己的见解。当然翻译并不是逐字逐句翻译的，会按照自己的理解组织语句。就把这篇作为 JNI 的入门文章吧。原文链接：<a target="_blank" rel="noopener" href="https://www3.ntu.edu.sg/home/ehchua/programming/java/JavaNativeInterface.html">https://www3.ntu.edu.sg/home/ehchua/programming/java/JavaNativeInterface.html</a> 。</p>
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>本文的 JDK 源码解读将基于 JDK14-GA 版本。</p>
+<p>ThreadLocal 实例是一个共享对象，多线程环境下每个线程都会创建一份副本，因此初始的情况下每个线程具有相同的初始值，但是后续每个线程对 ThreadLocal 的修改是相互独立的。因为 ThreadLocal 是线程内的变量，因此不存在多线程竞争造成的问题。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2020/01/07/JNI-tutorial-%E2%85%A0/#more" rel="contents">
+              <a class="btn" href="/2020/08/05/ThreadLocal-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/StampedLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/StampedLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">StampedLock 源码全解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 14:10:47 / 修改时间：19:17:20" itemprop="dateCreated datePublished" datetime="2020-08-05T14:10:47+08:00">2020-08-05</time>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/08/05/StampedLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/StampedLock-源码全解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>JUC 包源码全解析文章导航:</strong></p>
+<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
+<p><strong>本文 LockSupport 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>LockSupport 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/05/StampedLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/ReentrantLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/ReentrantLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ReentrantLock 源码全解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 10:47:46 / 修改时间：19:17:31" itemprop="dateCreated datePublished" datetime="2020-08-05T10:47:46+08:00">2020-08-05</time>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/08/05/ReentrantLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/ReentrantLock-源码全解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>JUC 包源码全解析文章导航:</strong></p>
+<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
+<p><strong>本文 Condition接口 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>Condition接口 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/05/ReentrantLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/Lock%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/Lock%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">Lock接口 源码全解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 10:41:06 / 修改时间：19:17:36" itemprop="dateCreated datePublished" datetime="2020-08-05T10:41:06+08:00">2020-08-05</time>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/08/05/Lock%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/Lock接口-源码全解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>JUC 包源码全解析文章导航:</strong></p>
+<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
+<p><strong>本文 Condition接口 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>Condition接口 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/05/Lock%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/ReentrantReadWriteLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/ReentrantReadWriteLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ReentrantReadWriteLock 源码全解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 09:41:32 / 修改时间：19:17:27" itemprop="dateCreated datePublished" datetime="2020-08-05T09:41:32+08:00">2020-08-05</time>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/08/05/ReentrantReadWriteLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/ReentrantReadWriteLock-源码全解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>JUC 包源码全解析文章导航:</strong></p>
+<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
+<p><strong>本文 LockSupport 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>LockSupport 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/05/ReentrantReadWriteLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/Condition%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/Condition%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">Condition接口 源码全解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 09:32:56 / 修改时间：19:17:50" itemprop="dateCreated datePublished" datetime="2020-08-05T09:32:56+08:00">2020-08-05</time>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/08/05/Condition%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/Condition接口-源码全解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>JUC 包源码全解析文章导航:</strong></p>
+<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
+<p><strong>本文 Condition接口 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>Condition接口 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/05/Condition%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/AbstractOwnableSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/AbstractOwnableSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">AbstractOwnableSynchronizer 源码全解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 09:31:02 / 修改时间：19:18:00" itemprop="dateCreated datePublished" datetime="2020-08-05T09:31:02+08:00">2020-08-05</time>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/08/05/AbstractOwnableSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/AbstractOwnableSynchronizer-源码全解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>JUC 包源码全解析文章导航:</strong></p>
+<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
+<p><strong>本文 AbstractOwnableSynchronizer 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>AbstractOwnableSynchronizer 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/05/AbstractOwnableSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/LockSupport-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/LockSupport-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">LockSupport 源码全解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-05 09:20:54 / 修改时间：19:17:33" itemprop="dateCreated datePublished" datetime="2020-08-05T09:20:54+08:00">2020-08-05</time>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/08/05/LockSupport-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/LockSupport-源码全解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>JUC 包源码全解析文章导航:</strong></p>
+<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
+<p><strong>本文 LockSupport 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>LockSupport 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/05/LockSupport-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">Collection接口 源码全解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-04 19:19:52" itemprop="dateCreated datePublished" datetime="2020-08-04T19:19:52+08:00">2020-08-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-08-05 19:17:53" itemprop="dateModified" datetime="2020-08-05T19:17:53+08:00">2020-08-05</time>
+              </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/04/Collection接口-源码全解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><strong>Collection 接口源码全解析文章导航:</strong><br>Collection接口 源码全解析</p>
+<p><strong>本文 Collection接口 源码解析基于 JDK14-GA 版本。</strong></p>
+<p><strong>Collection接口 的完整源码注释可以参看本人 Github 中的 <a target="_blank" rel="noopener" href="https://github.com/FFYzz/jdk14">JDK14</a> 仓库</strong></p>
+<p>Collection 接口是日常常用的 Set/List/Queue 的父类接口。需要注意的是，另外一个常用的 Map 接口与 Collection 接口是两两独立的。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -335,7 +1003,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/3/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span>
+    <a class="extend prev" rel="prev" href="/page/3/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/5/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -403,12 +1071,12 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-count">42</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
