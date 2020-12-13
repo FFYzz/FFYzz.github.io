@@ -21,16 +21,16 @@
     var CONFIG = {"hostname":"ffyzz.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="JUC 包源码全解析文章导航: Lock接口 源码全解析Condition接口 源码全解析LockSupport 源码全解析AbstractOwnableSynchronizer 源码全解析AbstractQueuedSynchronizer 源码全解析ReentrantLock 源码全解析ReentrantReadWriteLock 源码全解析StampedLock 源码全解析 本文 Condi">
+  <meta name="description" content="Condition 接口的存在是为了对标 Object 类中的 wait 和 notify 方法。因此可以将 Condition 接口作为使用更加灵活的线程间通信工具。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Condition接口 源码全解析">
 <meta property="og:url" content="https://ffyzz.github.io/2020/08/05/Condition%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/index.html">
 <meta property="og:site_name" content="Journey">
-<meta property="og:description" content="JUC 包源码全解析文章导航: Lock接口 源码全解析Condition接口 源码全解析LockSupport 源码全解析AbstractOwnableSynchronizer 源码全解析AbstractQueuedSynchronizer 源码全解析ReentrantLock 源码全解析ReentrantReadWriteLock 源码全解析StampedLock 源码全解析 本文 Condi">
+<meta property="og:description" content="Condition 接口的存在是为了对标 Object 类中的 wait 和 notify 方法。因此可以将 Condition 接口作为使用更加灵活的线程间通信工具。">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gel5vuuk7kj217o0jk0v7.jpg">
 <meta property="article:published_time" content="2020-08-05T01:32:56.000Z">
-<meta property="article:modified_time" content="2020-08-05T11:17:50.707Z">
+<meta property="article:modified_time" content="2020-12-13T13:17:38.595Z">
 <meta property="article:author" content="FFYzz">
 <meta property="article:tag" content="JDK">
 <meta name="twitter:card" content="summary">
@@ -192,10 +192,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2020-08-05 09:32:56 / 修改时间：19:17:50" itemprop="dateCreated datePublished" datetime="2020-08-05T09:32:56+08:00">2020-08-05</time>
+              <time title="创建时间：2020-08-05 09:32:56" itemprop="dateCreated datePublished" datetime="2020-08-05T09:32:56+08:00">2020-08-05</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-12-13 21:17:38" itemprop="dateModified" datetime="2020-12-13T21:17:38+08:00">2020-12-13</time>
+              </span>
 
           
             <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
@@ -229,13 +235,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p><strong>JUC 包源码全解析文章导航:</strong></p>
-<p>Lock接口 源码全解析<br>Condition接口 源码全解析<br>LockSupport 源码全解析<br>AbstractOwnableSynchronizer 源码全解析<br>AbstractQueuedSynchronizer 源码全解析<br>ReentrantLock 源码全解析<br>ReentrantReadWriteLock 源码全解析<br>StampedLock 源码全解析</p>
-<p><strong>本文 Condition接口 源码解析基于 JDK14-GA 版本。</strong></p>
-<p><strong>Condition接口 的完整源码注释可以参看本人 Github 中的 JDK14 仓库</strong></p>
+        <p>Condition 接口的存在是为了对标 Object 类中的 wait 和 notify 方法。因此可以将 Condition 接口作为使用更加灵活的线程间通信工具。</p>
 <a id="more"></a>
 
-<p>Condition 接口的存在是为了对标 Object 类中的 wait 和 notify 方法。因此可以将 Condition 接口作为使用更加灵活的线程间通信工具。</p>
 <p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gel5vuuk7kj217o0jk0v7.jpg"></p>
 <h2 id="API"><a href="#API" class="headerlink" title="API"></a>API</h2><h3 id="await系列"><a href="#await系列" class="headerlink" title="await系列"></a>await系列</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">await</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException</span>;</span><br></pre></td></tr></table></figure>
 
@@ -381,12 +383,12 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">42</span>
+          <span class="site-state-item-count">29</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
