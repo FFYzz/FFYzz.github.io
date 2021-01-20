@@ -21,19 +21,20 @@
     var CONFIG = {"hostname":"ffyzz.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="推荐阅读">
-<meta property="og:type" content="article">
-<meta property="og:title" content="SpringMVC 组件-FlashMapManager">
-<meta property="og:url" content="https://ffyzz.github.io/2020/11/21/SpringMVC-%E7%BB%84%E4%BB%B6-FlashMapManager/index.html">
+  <meta property="og:type" content="website">
+<meta property="og:title" content="Lock接口 源码全解析">
+<meta property="og:url" content="https://ffyzz.github.io/not%20ready/Lock%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90.html">
 <meta property="og:site_name" content="Journey">
-<meta property="og:description" content="推荐阅读">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2020-11-21T12:04:11.000Z">
-<meta property="article:modified_time" content="2020-11-21T12:04:11.018Z">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gecvinu3vgj21ey0mkdim.jpg">
+<meta property="article:published_time" content="2020-08-05T02:41:06.000Z">
+<meta property="article:modified_time" content="2020-12-13T13:17:33.825Z">
 <meta property="article:author" content="FFYzz">
+<meta property="article:tag" content="JDK">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gecvinu3vgj21ey0mkdim.jpg">
 
-<link rel="canonical" href="https://ffyzz.github.io/2020/11/21/SpringMVC-%E7%BB%84%E4%BB%B6-FlashMapManager/">
+<link rel="canonical" href="https://ffyzz.github.io/not%20ready/Lock%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90">
 
 
 <script id="page-configurations">
@@ -41,12 +42,13 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : true,
+    isPost : false,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>SpringMVC 组件-FlashMapManager | Journey</title>
+  <title>Lock接口 源码全解析 | Journey
+</title>
   
 
 
@@ -159,112 +161,77 @@
       <div class="main-inner">
         <div class="content-wrap">
           
+  
+  
 
-          <div class="content post posts-expand">
+          <div class="content page posts-expand">
             
 
     
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/11/21/SpringMVC-%E7%BB%84%E4%BB%B6-FlashMapManager/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="FFYzz">
-      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Journey">
-    </span>
+    
+    
+    <div class="post-block" lang="zh-CN">
       <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          SpringMVC 组件-FlashMapManager
-        </h1>
 
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
+<h1 class="post-title" itemprop="name headline">Lock接口 源码全解析
+</h1>
 
-              <time title="创建时间：2020-11-21 20:04:11" itemprop="dateCreated datePublished" datetime="2020-11-21T20:04:11+08:00">2020-11-21</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  ，
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-MVC/" itemprop="url" rel="index"><span itemprop="name">Spring MVC</span></a>
-                </span>
-            </span>
-
-          
-            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span id="busuanzi_value_page_pv"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus：</span>
-    
-    <a title="disqus" href="/2020/11/21/SpringMVC-%E7%BB%84%E4%BB%B6-FlashMapManager/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/11/21/SpringMVC-组件-FlashMapManager/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
+<div class="post-meta">
   
 
-        </div>
-      </header>
+</div>
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
+</header>
 
       
-        <h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2>
+      
+      
+      <div class="post-body">
+          <p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gecvinu3vgj21ey0mkdim.jpg"></p>
+<a id="more"></a>
+
+<h2 id="接口方法"><a href="#接口方法" class="headerlink" title="接口方法"></a>接口方法</h2><h3 id="Lock"><a href="#Lock" class="headerlink" title="Lock"></a>Lock</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">lock</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>如果锁未被持有，那么调用 lock 方法能够获取到锁。如果锁已被其他线程持有，那么 lock 方法会被阻塞。</p>
+<h3 id="lockInterruptibly"><a href="#lockInterruptibly" class="headerlink" title="lockInterruptibly"></a>lockInterruptibly</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">lockInterruptibly</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>该接口获取锁方法支持中断。</p>
+<ul>
+<li>如果调用该方法能够直接获取到锁，那么直接返回。</li>
+<li>如果未能直接获取到锁，那么将会阻塞等待。有两种情况会从阻塞状态中唤醒。<ul>
+<li>获取到了锁。获取到锁能够从阻塞中唤醒的原因是同步队列中的前驱节点主动将当前线程唤醒。</li>
+<li>其他线程中断了当前阻塞的线程。</li>
+</ul>
+</li>
+</ul>
+<h3 id="tryLock"><a href="#tryLock" class="headerlink" title="tryLock"></a>tryLock</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>首先该方法的调用返回两个结果，成功获取到锁或者未获取到锁。而且是立即返回。如果调用该方法的线程获取锁失败，线程不会进入同步队列等待，而是直接返回结果。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">tryLock</span><span class="params">(<span class="keyword">long</span> time, TimeUnit unit)</span> <span class="keyword">throws</span> InterruptedException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>带参数的 tryLock 方法在如果在指定时间内锁被释放，那么调用线程能够成功获取到锁。如果获取锁失败，那么线程将会进入到阻塞状态，知道发生以下几种情况，才会从阻塞状态中唤醒。</p>
+<ol>
+<li>线程在等待时间范围内成功获取到了锁。</li>
+<li>在等待时间范围内被其他线程中断了，那么会响应中断，从阻塞中唤醒。</li>
+<li>超时。</li>
+</ol>
+<h3 id="unlock"><a href="#unlock" class="headerlink" title="unlock"></a>unlock</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">unlock</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>释放锁，该接口方法的实现需要检查调用线程是否就是为持有锁的线程。</p>
+<h3 id="newCondition"><a href="#newCondition" class="headerlink" title="newCondition"></a>newCondition</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Condition <span class="title">newCondition</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>返回一个 Condition 实例。只要记住 Condition 的 await/signal 方法对标 Object 类中的 wait/notify 方法即可。</p>
+<h2 id="Best-Practice"><a href="#Best-Practice" class="headerlink" title="Best Practice"></a>Best Practice</h2><h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2>
+      </div>
+      
+      
+      
     </div>
+    
 
     
     
     
-
-      <footer class="post-footer">
-
-        
-
-
-        
-    <div class="post-nav">
-      <div class="post-nav-item">
-    <a href="/2020/11/21/SpringMVC-%E7%BB%84%E4%BB%B6-MultipartResolver/" rel="prev" title="SpringMVC 组件-MultipartResolver">
-      <i class="fa fa-chevron-left"></i> SpringMVC 组件-MultipartResolver
-    </a></div>
-      <div class="post-nav-item"></div>
-    </div>
-      </footer>
-    
-  </article>
-  
-  
-  
-
 
 
           </div>
@@ -322,7 +289,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-text">推荐阅读</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%B3%95"><span class="nav-text">接口方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Lock"><span class="nav-text">Lock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lockInterruptibly"><span class="nav-text">lockInterruptibly</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tryLock"><span class="nav-text">tryLock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#unlock"><span class="nav-text">unlock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#newCondition"><span class="nav-text">newCondition</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Best-Practice"><span class="nav-text">Best Practice</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-text">推荐阅读</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -338,7 +305,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -385,8 +352,8 @@
 
 <div class="copyright">
   
-  &copy; 
-  <span itemprop="copyrightYear">2020</span>
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
@@ -478,9 +445,9 @@
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "https://ffyzz.github.io/2020/11/21/SpringMVC-%E7%BB%84%E4%BB%B6-FlashMapManager/";
-    this.page.identifier = "2020/11/21/SpringMVC-组件-FlashMapManager/";
-    this.page.title = "SpringMVC 组件-FlashMapManager";
+    this.page.url = "https://ffyzz.github.io/not%20ready/Lock%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90.html";
+    this.page.identifier = "not ready/Lock接口-源码全解析.html";
+    this.page.title = "Lock接口 源码全解析";
     };
   NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
     if (window.DISQUS) {

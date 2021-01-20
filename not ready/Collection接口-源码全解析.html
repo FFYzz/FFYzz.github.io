@@ -22,9 +22,9 @@
   </script>
 
   <meta name="description" content="Collection 接口源码全解析文章导航:Collection接口 源码全解析 本文 Collection接口 源码解析基于 JDK14-GA 版本。 Collection接口 的完整源码注释可以参看本人 Github 中的 JDK14 仓库 Collection 接口是日常常用的 Set&#x2F;List&#x2F;Queue 的父类接口。需要注意的是，另外一个常用的 Map 接口与 Collection 接">
-<meta property="og:type" content="article">
+<meta property="og:type" content="website">
 <meta property="og:title" content="Collection接口 源码全解析">
-<meta property="og:url" content="https://ffyzz.github.io/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:url" content="https://ffyzz.github.io/not%20ready/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90.html">
 <meta property="og:site_name" content="Journey">
 <meta property="og:description" content="Collection 接口源码全解析文章导航:Collection接口 源码全解析 本文 Collection接口 源码解析基于 JDK14-GA 版本。 Collection接口 的完整源码注释可以参看本人 Github 中的 JDK14 仓库 Collection 接口是日常常用的 Set&#x2F;List&#x2F;Queue 的父类接口。需要注意的是，另外一个常用的 Map 接口与 Collection 接">
 <meta property="og:locale" content="zh_CN">
@@ -37,7 +37,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752gy1geqtm6zce3j20hq0lumxf.jpg">
 
-<link rel="canonical" href="https://ffyzz.github.io/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+<link rel="canonical" href="https://ffyzz.github.io/not%20ready/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90">
 
 
 <script id="page-configurations">
@@ -45,12 +45,13 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : true,
+    isPost : false,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>Collection接口 源码全解析 | Journey</title>
+  <title>Collection接口 源码全解析 | Journey
+</title>
   
 
 
@@ -163,80 +164,33 @@
       <div class="main-inner">
         <div class="content-wrap">
           
+  
+  
 
-          <div class="content post posts-expand">
+          <div class="content page posts-expand">
             
 
     
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="FFYzz">
-      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Journey">
-    </span>
+    
+    
+    <div class="post-block" lang="zh-CN">
       <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          Collection接口 源码全解析
-        </h1>
 
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
+<h1 class="post-title" itemprop="name headline">Collection接口 源码全解析
+</h1>
 
-              <time title="创建时间：2020-08-04 19:19:52" itemprop="dateCreated datePublished" datetime="2020-08-04T19:19:52+08:00">2020-08-04</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-08-05 19:17:53" itemprop="dateModified" datetime="2020-08-05T19:17:53+08:00">2020-08-05</time>
-              </span>
-
-          
-            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span id="busuanzi_value_page_pv"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus：</span>
-    
-    <a title="disqus" href="/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/04/Collection接口-源码全解析/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
+<div class="post-meta">
   
 
-        </div>
-      </header>
+</div>
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
+</header>
 
       
-        <p><strong>Collection 接口源码全解析文章导航:</strong><br>Collection接口 源码全解析</p>
+      
+      
+      <div class="post-body">
+          <p><strong>Collection 接口源码全解析文章导航:</strong><br>Collection接口 源码全解析</p>
 <p><strong>本文 Collection接口 源码解析基于 JDK14-GA 版本。</strong></p>
 <p><strong>Collection接口 的完整源码注释可以参看本人 Github 中的 <a target="_blank" rel="noopener" href="https://github.com/FFYzz/jdk14">JDK14</a> 仓库</strong></p>
 <p>Collection 接口是日常常用的 Set/List/Queue 的父类接口。需要注意的是，另外一个常用的 Map 接口与 Collection 接口是两两独立的。</p>
@@ -304,38 +258,16 @@
 
 <p>多核 CPU 下 parallelStream 会比 Stream 效率更高，但是 parallelStream 不是线程安全的。</p>
 <h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2>
+      </div>
+      
+      
+      
     </div>
+    
 
     
     
     
-
-      <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/JDK/" rel="tag"># JDK</a>
-          </div>
-
-        
-
-
-        
-    <div class="post-nav">
-      <div class="post-nav-item">
-    <a href="/2020/01/12/JNI-tutorial-%E2%85%A1/" rel="prev" title="JNI-tutorial-Ⅱ">
-      <i class="fa fa-chevron-left"></i> JNI-tutorial-Ⅱ
-    </a></div>
-      <div class="post-nav-item">
-    <a href="/2020/08/05/LockSupport-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="next" title="LockSupport 源码全解析">
-      LockSupport 源码全解析 <i class="fa fa-chevron-right"></i>
-    </a></div>
-    </div>
-      </footer>
-    
-  </article>
-  
-  
-  
-
 
 
           </div>
@@ -409,7 +341,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -456,8 +388,8 @@
 
 <div class="copyright">
   
-  &copy; 
-  <span itemprop="copyrightYear">2020</span>
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
@@ -549,8 +481,8 @@
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "https://ffyzz.github.io/2020/08/04/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/";
-    this.page.identifier = "2020/08/04/Collection接口-源码全解析/";
+    this.page.url = "https://ffyzz.github.io/not%20ready/Collection%E6%8E%A5%E5%8F%A3-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90.html";
+    this.page.identifier = "not ready/Collection接口-源码全解析.html";
     this.page.title = "Collection接口 源码全解析";
     };
   NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {

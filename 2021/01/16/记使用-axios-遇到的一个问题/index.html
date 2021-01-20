@@ -21,22 +21,19 @@
     var CONFIG = {"hostname":"ffyzz.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"right","display":"always","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="OpenJDK 官网拉取不建议在 OpenJDK 上拉取，因为速度实在是太慢了不建议在 OpenJDK 上拉取，因为速度实在是太慢了不建议在 OpenJDK 上拉取，因为速度实在是太慢了 准备开始写一些 JDK 相关的源码阅读笔记。因此，第一件事当然是去把 openJDK 的代码拉下来。openJDK 的代码并不是托管在 github 上的(github 上似乎也有，github 上没有将具体的">
+  <meta name="description" content="Background前端通过 axios 往后端发请求的时候，使用了 HTTP Method 为 GET 方法。然后后端一直收不到请求的参数。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="官方渠道获取 openJDK 源代码">
-<meta property="og:url" content="https://ffyzz.github.io/2020/08/05/%E5%AE%98%E6%96%B9%E6%B8%A0%E9%81%93%E8%8E%B7%E5%8F%96-openJDK-%E6%BA%90%E4%BB%A3%E7%A0%81/index.html">
+<meta property="og:title" content="记使用 axios 遇到的一个问题">
+<meta property="og:url" content="https://ffyzz.github.io/2021/01/16/%E8%AE%B0%E4%BD%BF%E7%94%A8-axios-%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%B8%AA%E9%97%AE%E9%A2%98/index.html">
 <meta property="og:site_name" content="Journey">
-<meta property="og:description" content="OpenJDK 官网拉取不建议在 OpenJDK 上拉取，因为速度实在是太慢了不建议在 OpenJDK 上拉取，因为速度实在是太慢了不建议在 OpenJDK 上拉取，因为速度实在是太慢了 准备开始写一些 JDK 相关的源码阅读笔记。因此，第一件事当然是去把 openJDK 的代码拉下来。openJDK 的代码并不是托管在 github 上的(github 上似乎也有，github 上没有将具体的">
+<meta property="og:description" content="Background前端通过 axios 往后端发请求的时候，使用了 HTTP Method 为 GET 方法。然后后端一直收不到请求的参数。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gcux56goicj21y20gcdm2.jpg">
-<meta property="article:published_time" content="2020-08-05T07:27:48.000Z">
-<meta property="article:modified_time" content="2020-08-05T11:17:10.308Z">
+<meta property="article:published_time" content="2021-01-16T01:27:08.000Z">
+<meta property="article:modified_time" content="2021-01-16T02:39:59.464Z">
 <meta property="article:author" content="FFYzz">
-<meta property="article:tag" content="JDK">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gcux56goicj21y20gcdm2.jpg">
 
-<link rel="canonical" href="https://ffyzz.github.io/2020/08/05/%E5%AE%98%E6%96%B9%E6%B8%A0%E9%81%93%E8%8E%B7%E5%8F%96-openJDK-%E6%BA%90%E4%BB%A3%E7%A0%81/">
+<link rel="canonical" href="https://ffyzz.github.io/2021/01/16/%E8%AE%B0%E4%BD%BF%E7%94%A8-axios-%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%B8%AA%E9%97%AE%E9%A2%98/">
 
 
 <script id="page-configurations">
@@ -49,7 +46,7 @@
   };
 </script>
 
-  <title>官方渠道获取 openJDK 源代码 | Journey</title>
+  <title>记使用 axios 遇到的一个问题 | Journey</title>
   
 
 
@@ -170,7 +167,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/%E5%AE%98%E6%96%B9%E6%B8%A0%E9%81%93%E8%8E%B7%E5%8F%96-openJDK-%E6%BA%90%E4%BB%A3%E7%A0%81/">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2021/01/16/%E8%AE%B0%E4%BD%BF%E7%94%A8-axios-%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%B8%AA%E9%97%AE%E9%A2%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -183,7 +180,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          官方渠道获取 openJDK 源代码
+          记使用 axios 遇到的一个问题
         </h1>
 
         <div class="post-meta">
@@ -194,7 +191,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-08-05 15:27:48 / 修改时间：19:17:10" itemprop="dateCreated datePublished" datetime="2020-08-05T15:27:48+08:00">2020-08-05</time>
+              <time title="创建时间：2021-01-16 09:27:08 / 修改时间：10:39:59" itemprop="dateCreated datePublished" datetime="2021-01-16T09:27:08+08:00">2021-01-16</time>
             </span>
 
           
@@ -213,8 +210,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2020/08/05/%E5%AE%98%E6%96%B9%E6%B8%A0%E9%81%93%E8%8E%B7%E5%8F%96-openJDK-%E6%BA%90%E4%BB%A3%E7%A0%81/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/官方渠道获取-openJDK-源代码/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2021/01/16/%E8%AE%B0%E4%BD%BF%E7%94%A8-axios-%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%B8%AA%E9%97%AE%E9%A2%98/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2021/01/16/记使用-axios-遇到的一个问题/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -229,25 +226,21 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="OpenJDK-官网拉取"><a href="#OpenJDK-官网拉取" class="headerlink" title="OpenJDK 官网拉取"></a>OpenJDK 官网拉取</h2><p><strong>不建议在 OpenJDK 上拉取，因为速度实在是太慢了</strong><br><strong>不建议在 OpenJDK 上拉取，因为速度实在是太慢了</strong><br><strong>不建议在 OpenJDK 上拉取，因为速度实在是太慢了</strong></p>
-<p>准备开始写一些 JDK 相关的源码阅读笔记。因此，第一件事当然是去把 openJDK 的代码拉下来。openJDK 的代码并不是托管在 github 上的(github 上似乎也有，github 上没有将具体的 tag 分出来)，我们需要去 openJDK 的官网上去获取。先贴一个 openJDK 官网链接。在官网的最左边一栏可以看到所有提供的信息。在 projects 下可以看到 JDK 的不同版本。目前的最新版本是 openJDK15。竟然都更到 15 了，应该还有很多公司目前在用 JDK8 的版本吧。openJDK 的官网还是能发现很多东西的，比如各个版本新增的 feature 等等。言归正传，回到如何获取 openJDK 的源代码中来。</p>
+        <h2 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h2><p>前端通过 axios 往后端发请求的时候，使用了 HTTP Method 为 GET 方法。然后后端一直收不到请求的参数。</p>
 <a id="more"></a>
 
-<p>同样在首页的最左边栏上，有一个 source code 的子标题。source code 标题下有 Mercurial。Mercurial 是一个版本控制软件，类似于 git。openJDK 就是使用这个软件进行源代码的管理。进入之后可以选择 JDK 的版本，如下图所示。</p>
-<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gcux56goicj21y20gcdm2.jpg"></p>
-<p>选择版本后可以使用如下命令来下载，比如要拉取 openJDK14 的源代码。[暂时还没有用这个方法成功拉取到源代码….因为实在是太慢了]</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hg clone http://hg.openjdk.java.net/jdk/jdk14/</span><br></pre></td></tr></table></figure>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> reqRealEndAsync = <span class="function">(<span class="params">method, baseUrl, url, params, callback</span>) =&gt;</span> &#123;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">  <span class="keyword">return</span> axios(&#123;</span><br><span class="line">        timeout: <span class="number">5000</span>,</span><br><span class="line">        baseURL: baseUrl,</span><br><span class="line">        method: method,</span><br><span class="line">        url: url,</span><br><span class="line">        headers: &#123;</span><br><span class="line">            <span class="string">&#x27;Content-type&#x27;</span>: <span class="string">&#x27;application/x-www-form-urlencoded&#x27;</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        data: Qs.stringify(params),</span><br><span class="line">        traditional: <span class="literal">true</span></span><br><span class="line">    &#125;).then(<span class="function"><span class="params">res</span> =&gt;</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> result = res.data;</span><br><span class="line">        <span class="keyword">if</span> (callback != <span class="literal">undefined</span>) &#123;</span><br><span class="line">            callback(result.code, result.message, result.data);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 
-<p>在执行该命令之前必须得先安装 Mercurial。不同平台上有不同的安装方法。可以参考 Mercurial 的官网提供的方法。</p>
-<p>另一个方法：直接下载压缩包。在选择确定版本之后，点击左边的 tags 可以选择具体的某个版本。选择具体的某个版本之后再点击左侧的压缩包类型就可以进行下载了。[事实证明也是挺慢的….]</p>
-<h2 id="Github-拉取"><a href="#Github-拉取" class="headerlink" title="Github 拉取"></a>Github 拉取</h2><p><strong>推荐这种方法拉取源代码</strong><br><strong>推荐这种方法拉取源代码</strong><br><strong>推荐这种方法拉取源代码</strong></p>
-<p>首先要阅读 JDK 的源码，那肯定先要把代码 fork 到自己的仓库中。因此先贴上 openJDK 官方在 github 上的主页地址。fork 到自己的仓库之后，如果想要查看某个具体版本的代码，就把它 checkout 出来就可以了。<del>这个方法有一点缺点就是如果想要使用某个特定版本，那么需要去把版本的 commit id 给查出来，再 checkout 出来。</del>原因就是上文说过了，github 官网上并没有列出所有的 tags。 最后就可以愉快的阅读代码了。</p>
-<p>UPDATE：</p>
-<p>github 官方仓库的 tags 中确实没有把所有的 tag 列出，但是实际操作发现是可以直接 checkout 出来的。比如</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git checkout jdk-13+22</span><br></pre></td></tr></table></figure>
+<p>前端发起调用的函数如上定义，传入的 method 为 GET ，params 不为空。出现的情况就是后端一直接收不到 data 的值。后将 GET 方法改成了 POST 方法，后端就收到了前端传过去的参数。(但是由于后端并没有定义 POST 方式的 handlerMethod，所以找不到对应的处理方法。)</p>
+<h2 id="WHY"><a href="#WHY" class="headerlink" title="WHY"></a>WHY</h2><p>首先会卡在这个问题的主要原因就是对 axios 这个库的使用并不熟悉(上面这段发送请求的模板是往上 copy 的…..🤣)。不清楚 axios 在调用后端接口的时候，传参是如何传的。</p>
+<h2 id="SOLUTION"><a href="#SOLUTION" class="headerlink" title="SOLUTION"></a>SOLUTION</h2><p>首先在网上简单搜索了一下，发现并没有类似的问题。(因为犯了原则性错误🤣)。因此，直接去 github 上的 axios 主页寻找相关的使用方法。<br>在首页的 README.MD 中找到了原因以及对应的解决方法。README.MD 中有下面两段话。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// `params` are the URL parameters to be sent with the request</span></span><br><span class="line"><span class="comment">// Must be a plain object or a URLSearchParams object</span></span><br><span class="line">params: &#123;</span><br><span class="line">  ID: <span class="number">12345</span></span><br><span class="line">&#125;,</span><br><span class="line"><span class="comment">// `data` is the data to be sent as the request body</span></span><br><span class="line"><span class="comment">// Only applicable for request methods &#x27;PUT&#x27;, &#x27;POST&#x27;, &#x27;DELETE , and &#x27;PATCH&#x27;</span></span><br><span class="line"><span class="comment">// When no `transformRequest` is set, must be of one of the following types:</span></span><br><span class="line"><span class="comment">// - string, plain object, ArrayBuffer, ArrayBufferView, URLSearchParams</span></span><br><span class="line"><span class="comment">// - Browser only: FormData, File, Blob</span></span><br><span class="line"><span class="comment">// - Node only: Stream, Buffer</span></span><br><span class="line">data: &#123;</span><br><span class="line">  firstName: <span class="string">&#x27;Fred&#x27;</span></span><br><span class="line">&#125;,</span><br><span class="line"></span><br><span class="line"><span class="comment">// syntax alternative to send data into the body</span></span><br><span class="line"><span class="comment">// method post</span></span><br><span class="line"><span class="comment">// only the value is sent, not the key</span></span><br><span class="line">data: <span class="string">&#x27;Country=Brasil&amp;City=Belo Horizonte&#x27;</span>,</span><br></pre></td></tr></table></figure>
 
-<p>因此可以抛弃 openJDK 官网，直接在 github 上 fork 之后再 pull 了。</p>
-<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p>openJDK 官网链接<br>Mercurial 的官网<br>openJDK 官方在 github 上的主页地址</p>
+<p>看了上面这段介绍，就很清晰了。params 传的是 URL 参数，data 传的是请求体中的数据。并且 data 只能用于  ‘PUT’, ‘POST’, ‘DELETE’ , ‘PATCH’ 方法。所以，下面开始改造吧…..</p>
+<p>改造后的请求模板如下。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> reqRealEndAsync = <span class="function">(<span class="params">method, baseUrl, url, data, params, callback</span>) =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (data != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="comment">// do something</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (params != <span class="literal">null</span>) &#123;</span><br><span class="line">          <span class="comment">// do something</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> axios(&#123;</span><br><span class="line">        timeout: <span class="number">5000</span>,</span><br><span class="line">        baseURL: baseUrl,</span><br><span class="line">        method: method,</span><br><span class="line">        url: url,</span><br><span class="line">        headers: &#123;</span><br><span class="line">            <span class="string">&#x27;Content-type&#x27;</span>: <span class="string">&#x27;application/x-www-form-urlencoded&#x27;</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        params: params,</span><br><span class="line">        data: Qs.stringify(data),</span><br><span class="line">        traditional: <span class="literal">true</span></span><br><span class="line">    &#125;).then(<span class="function"><span class="params">res</span> =&gt;</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> result = res.data;</span><br><span class="line">        <span class="keyword">if</span> (callback != <span class="literal">undefined</span>) &#123;</span><br><span class="line">            callback(result.code, result.message, result.data);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>分别对 GET 请求和其他请求的请求参数作为不同的参数(data, params)传入。改造完之后，修改相应的调用接口就可以正常调用了。</p>
 
     </div>
 
@@ -256,9 +249,6 @@
     
 
       <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/JDK/" rel="tag"># JDK</a>
-          </div>
 
         
 
@@ -266,12 +256,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="prev" title="AbstractQueuedSynchronizer 源码全解析">
-      <i class="fa fa-chevron-left"></i> AbstractQueuedSynchronizer 源码全解析
+    <a href="/2020/11/21/SpringMVC-%E7%BB%84%E4%BB%B6-MultipartResolver/" rel="prev" title="SpringMVC 组件-MultipartResolver">
+      <i class="fa fa-chevron-left"></i> SpringMVC 组件-MultipartResolver
     </a></div>
       <div class="post-nav-item">
-    <a href="/2020/09/20/%E8%AE%B0%E5%BD%95%E4%B8%80%E6%AC%A1%E7%94%A8-Wireshark-%E6%8A%93%E5%8F%96-TLS-%E5%8D%8F%E8%AE%AE%E6%8F%A1%E6%89%8B%E7%9A%84%E8%BF%87%E7%A8%8B/" rel="next" title="记录一次用 Wireshark 抓取 TLS 协议握手的过程">
-      记录一次用 Wireshark 抓取 TLS 协议握手的过程 <i class="fa fa-chevron-right"></i>
+    <a href="/2021/01/20/%E5%BC%80%E5%8F%91%E9%81%87%E8%A7%81%E7%9A%84%E9%94%99%E8%AF%AF%E9%9B%86%E5%90%88/" rel="next" title="开发遇见的错误集合">
+      开发遇见的错误集合 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -338,7 +328,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenJDK-%E5%AE%98%E7%BD%91%E6%8B%89%E5%8F%96"><span class="nav-text">OpenJDK 官网拉取</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Github-%E6%8B%89%E5%8F%96"><span class="nav-text">Github 拉取</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-text">参考链接</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Background"><span class="nav-text">Background</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WHY"><span class="nav-text">WHY</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SOLUTION"><span class="nav-text">SOLUTION</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -494,9 +484,9 @@
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "https://ffyzz.github.io/2020/08/05/%E5%AE%98%E6%96%B9%E6%B8%A0%E9%81%93%E8%8E%B7%E5%8F%96-openJDK-%E6%BA%90%E4%BB%A3%E7%A0%81/";
-    this.page.identifier = "2020/08/05/官方渠道获取-openJDK-源代码/";
-    this.page.title = "官方渠道获取 openJDK 源代码";
+    this.page.url = "https://ffyzz.github.io/2021/01/16/%E8%AE%B0%E4%BD%BF%E7%94%A8-axios-%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E4%B8%AA%E9%97%AE%E9%A2%98/";
+    this.page.identifier = "2021/01/16/记使用-axios-遇到的一个问题/";
+    this.page.title = "记使用 axios 遇到的一个问题";
     };
   NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
     if (window.DISQUS) {
