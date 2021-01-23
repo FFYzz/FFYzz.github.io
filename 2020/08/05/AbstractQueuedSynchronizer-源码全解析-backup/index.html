@@ -23,22 +23,21 @@
 
   <meta name="description" content="AbstractQueuedSynchronizer 简称 AQS。AQS 基于 FIFO 等待队列可以实现 Blocking Locks 和 synchronizers(比如 semaphores 等)。AQS 中使用一个 volatile 修饰的 state 变量来表示当前的同步状态。一般情况下，state 为 0 表示锁未被获取，state &gt; 0 表示锁已被获取，在可重入锁中，sta">
 <meta property="og:type" content="article">
-<meta property="og:title" content="AbstractQueuedSynchronizer 源码全解析">
-<meta property="og:url" content="https://ffyzz.github.io/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:title" content="AbstractQueuedSynchronizer 源码全解析-back">
+<meta property="og:url" content="https://ffyzz.github.io/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90-backup/index.html">
 <meta property="og:site_name" content="Journey">
 <meta property="og:description" content="AbstractQueuedSynchronizer 简称 AQS。AQS 基于 FIFO 等待队列可以实现 Blocking Locks 和 synchronizers(比如 semaphores 等)。AQS 中使用一个 volatile 修饰的 state 变量来表示当前的同步状态。一般情况下，state 为 0 表示锁未被获取，state &gt; 0 表示锁已被获取，在可重入锁中，sta">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1ge6bzvtfxoj22ya1wcx2w.jpg">
 <meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752gy1gl1qi7shx1j20jg087taa.jpg">
 <meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752gy1gl1qjjbp63j20jg087dhs.jpg">
 <meta property="article:published_time" content="2020-08-05T07:09:29.000Z">
-<meta property="article:modified_time" content="2020-12-13T13:17:42.186Z">
+<meta property="article:modified_time" content="2021-01-20T23:41:18.447Z">
 <meta property="article:author" content="FFYzz">
 <meta property="article:tag" content="JDK">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752ly1ge6bzvtfxoj22ya1wcx2w.jpg">
+<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752gy1gl1qi7shx1j20jg087taa.jpg">
 
-<link rel="canonical" href="https://ffyzz.github.io/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+<link rel="canonical" href="https://ffyzz.github.io/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90-backup/">
 
 
 <script id="page-configurations">
@@ -51,7 +50,7 @@
   };
 </script>
 
-  <title>AbstractQueuedSynchronizer 源码全解析 | Journey</title>
+  <title>AbstractQueuedSynchronizer 源码全解析-back | Journey</title>
   
 
 
@@ -172,7 +171,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90-backup/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.png">
@@ -185,7 +184,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          AbstractQueuedSynchronizer 源码全解析
+          AbstractQueuedSynchronizer 源码全解析-back
         </h1>
 
         <div class="post-meta">
@@ -202,7 +201,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-12-13 21:17:42" itemprop="dateModified" datetime="2020-12-13T21:17:42+08:00">2020-12-13</time>
+                <time title="修改时间：2021-01-21 07:41:18" itemprop="dateModified" datetime="2021-01-21T07:41:18+08:00">2021-01-21</time>
               </span>
 
           
@@ -221,8 +220,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/AbstractQueuedSynchronizer-源码全解析/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90-backup/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/08/05/AbstractQueuedSynchronizer-源码全解析-backup/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -237,30 +236,35 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>AbstractQueuedSynchronizer 简称 AQS。AQS 基于 FIFO 等待队列可以实现 Blocking Locks 和 synchronizers(比如 semaphores 等)。AQS 中使用一个 volatile 修饰的 state 变量来表示当前的同步状态。一般情况下，state 为 0 表示锁未被获取，state &gt; 0 表示锁已被获取，在可重入锁中，state 的值会 &gt; 1。子类在实现 AbstractQueuedSynchronizer 抽象类的时候必须定义一个能够修改 state 状态的方法。基于 AQS 实现的同步器支持两种模式，一种是 exclusive 模式，另一种是 shared 模式。</p>
+        <p>AbstractQueuedSynchronizer 简称 AQS。AQS 基于 FIFO 等待队列可以实现 Blocking Locks 和 synchronizers(比如 semaphores 等)。AQS 中使用一个 volatile 修饰的 state 变量来表示当前的同步状态。一般情况下，state 为 0 表示锁未被获取，state &gt; 0 表示锁已被获取，在可重入锁中，state 的值会 &gt; 1。子类在实现 AbstractQueuedSynchronizer 抽象类的时候必须定义一个能够修改 state 状态的方法。基于 AQS 实现的同步器支持两种模式，一种是 exclusive 模式，另一种是 shared 模式。exclusive 模式用在独占锁场景下，shared 模式可用于读写锁场景中。例如，ReentrantLock 仅使用了 exclusive 模式，ReentrantReadWriteLock 使用了 exclusive 模式和 shared 模式。 </p>
 <a id="more"></a>
 
-<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1ge6bzvtfxoj22ya1wcx2w.jpg"></p>
 <h2 id="锁的状态"><a href="#锁的状态" class="headerlink" title="锁的状态"></a>锁的状态</h2><p>AQS 中锁的状态由 state 变量表示。同前文所述，state 是一个 int 类型的变量，state == 0 时，表明锁未被获取。当 state &gt; 0 时，表示锁已被获取。 state 可以大于 1 的原因是锁可以重入，重入一次， state 的值 + 1。</p>
-<h3 id="state-相关方法"><a href="#state-相关方法" class="headerlink" title="state 相关方法"></a>state 相关方法</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">getState</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> state;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">setState</span><span class="params">(<span class="keyword">int</span> newState)</span> </span>&#123;</span><br><span class="line">    state = newState;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">compareAndSetState</span><span class="params">(<span class="keyword">int</span> expect, <span class="keyword">int</span> update)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> U.compareAndSetInt(<span class="keyword">this</span>, STATE, expect, update);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">int</span> state;</span><br></pre></td></tr></table></figure>
 
-<p>state 相关的方法只有三个，一个是 get 方法，一个是 set 方法。因为 state 是 volatile 变量，所以其读写也是 volatile 读写。此外还有一个 cas 更新 state 的方法。</p>
+<p>state 由 volatile 关键字修饰，在不同线程访问该变量的时候，能够保证每个线程读取到的 state 的值都是最新的值。</p>
 <h2 id="FIFO-等待队列"><a href="#FIFO-等待队列" class="headerlink" title="FIFO 等待队列"></a>FIFO 等待队列</h2><p>AQS 中的主要数据结构是一个基于 CLH(Craig, Landin, and Hagersten) 队列实现的变体 CLH 等待队列(后文以 CLH 队列代表 AQS 中使用的等待队列，但是必须得清楚 AQS 中使用的队列与规范定义的 CLH 队列还是不同的)。CLH 队列的深入理解可以阅读 T Craig 在 1993 年写的文章 “Building FIFO and priorityqueuing spin locks from atomic swap”。CLH 队列与普通队列类似，存在一个头节点指针 head 和尾节点指针 tail。CLH 队列中的元素用 AQS 中的内部抽象类 Node 表示。</p>
-<h3 id="CLH-队列中的节点数据结构-Node"><a href="#CLH-队列中的节点数据结构-Node" class="headerlink" title="CLH 队列中的节点数据结构 - Node"></a>CLH 队列中的节点数据结构 - Node</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Node</span> </span>&#123;</span><br><span class="line">    <span class="keyword">volatile</span> Node prev;       <span class="comment">// initially attached via casTail</span></span><br><span class="line">    <span class="keyword">volatile</span> Node next;       <span class="comment">// visibly nonnull when signallable</span></span><br><span class="line">    Thread waiter;            <span class="comment">// visibly nonnull when enqueued</span></span><br><span class="line">    <span class="keyword">volatile</span> <span class="keyword">int</span> status;      <span class="comment">// written by owner, atomic bit ops by others</span></span><br><span class="line">    <span class="comment">// 省略操作内部成员变量的方法</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="CLH-队列中的节点数据结构-Node"><a href="#CLH-队列中的节点数据结构-Node" class="headerlink" title="CLH 队列中的节点数据结构 - Node"></a>CLH 队列中的节点数据结构 - Node</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Node</span> </span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> Node SHARED = <span class="keyword">new</span> Node();</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> Node EXCLUSIVE = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">volatile</span> Node prev;       </span><br><span class="line">    <span class="keyword">volatile</span> Node next;       </span><br><span class="line">    Node nextWaiter;          </span><br><span class="line">    <span class="keyword">volatile</span> <span class="keyword">int</span> waitStatus;</span><br><span class="line">    <span class="keyword">volatile</span> Thread thread;</span><br><span class="line">    <span class="comment">// 省略操作内部成员变量的方法</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <ul>
 <li>CLH 队列是一个双向队列，所以 prev 和 next 分别指向前后 Node。</li>
-<li>waiter 是一个 Thread 类型的变量，绑定了 Node 对应的线程。</li>
-<li>status 表示节点的状态，节点可以处于不同的状态，下面会进行分析。</li>
+<li>thread 是一个 Thread 类型的变量，绑定了 Node 对应的线程。</li>
+<li>waitStatus 表示节点的状态，节点可以处于不同的状态，下面会进行分析。</li>
+<li>nextWaiter 在 exclusive 模式和 shared 模式下有不同的意义。当入队节点为 exclusive Node 的时候，nextWaiter 将会指向 Node 类中预定义的一个节点 EXCLUSIVE，EXCLUSIVE 节点为 null。当入队的节点为 shared Node 的时候，nextWaiter 会指向一个 SHARED 节点。nextWaiter 可以用于判断当前节点的类型，起到一个标记当前节点类型的作用。</li>
 </ul>
-<p>Node 的 status 由三个常量来表示。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> WAITING = <span class="number">1</span>;          <span class="comment">// must be 1</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CANCELLED = <span class="number">0x80000000</span>; <span class="comment">// must be negative</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> COND = <span class="number">2</span>;          <span class="comment">// in a condition wait</span></span><br></pre></td></tr></table></figure>
+<p>Node 的 waitStatus 由四个常量来表示。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CANCELLED =  <span class="number">1</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> SIGNAL    = -<span class="number">1</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CONDITION = -<span class="number">2</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> PROPAGATE = -<span class="number">3</span></span><br></pre></td></tr></table></figure>
 
-<p>其实除了以上三个能用常量表示的状态之外，还有一个默认的状态，也就是在创建 Node 实例的时候，它的初始值为 0。</p>
+<p>其实除了以上四个能用常量表示的状态之外，还有一个默认的状态，也就是在创建 Node 实例的时候，它的初始值为 0。</p>
 <ul>
-<li>WAITING = 1，节点处于同步队列中等待的状态。</li>
-<li>CANCELLED = 0x80000000，节点已经取消获取锁。</li>
-<li>COND = 2，在条件等待队列中进行等待。</li>
+<li><p>CANCELLED = 1，唯一一个大于 0 的状态，表示节点已经取消。</p>
+</li>
+<li><p>SIGNAL = -1，该状态一般由后继节点设置，后继节点将前驱节点的状态设置为 SIGNAL 之后，就可以进入 park 状态了。当前节点在释放锁之后会唤醒后继节点。</p>
+</li>
+<li><p>CONDITION = -2，表示当前节点在条件等待队列中进行等待。</p>
+</li>
+<li><p>PROPAGATE = -3，只存在于 shared 模式中节点的状态。当节点状态处于 PROPAGATE 的时候，说明已经获取到了锁，并且会释放锁并往后传播。 shared 模式比较特殊，在获取到锁之后，是不需要占有锁的。因为可以有多个线程获取到锁，所以需要释放锁之后往后传播。</p>
+</li>
 </ul>
 <p>至于具体状态会进行如何处理，我们到后续的方法中再具体分析。</p>
 <h3 id="独占类型的节点-ExclusiveNode"><a href="#独占类型的节点-ExclusiveNode" class="headerlink" title="独占类型的节点 - ExclusiveNode"></a>独占类型的节点 - ExclusiveNode</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ExclusiveNode</span> <span class="keyword">extends</span> <span class="title">Node</span> </span>&#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -446,12 +450,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90-backup/" rel="prev" title="AbstractQueuedSynchronizer 源码全解析-back">
-      <i class="fa fa-chevron-left"></i> AbstractQueuedSynchronizer 源码全解析-back
+    <a href="/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/" rel="prev" title="Floyd's Cycle Detection Algorithm">
+      <i class="fa fa-chevron-left"></i> Floyd's Cycle Detection Algorithm
     </a></div>
       <div class="post-nav-item">
-    <a href="/2020/08/05/%E5%AE%98%E6%96%B9%E6%B8%A0%E9%81%93%E8%8E%B7%E5%8F%96-openJDK-%E6%BA%90%E4%BB%A3%E7%A0%81/" rel="next" title="官方渠道获取 openJDK 源代码">
-      官方渠道获取 openJDK 源代码 <i class="fa fa-chevron-right"></i>
+    <a href="/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/" rel="next" title="AbstractQueuedSynchronizer 源码全解析">
+      AbstractQueuedSynchronizer 源码全解析 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -518,7 +522,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81%E7%9A%84%E7%8A%B6%E6%80%81"><span class="nav-text">锁的状态</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#state-%E7%9B%B8%E5%85%B3%E6%96%B9%E6%B3%95"><span class="nav-text">state 相关方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#FIFO-%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97"><span class="nav-text">FIFO 等待队列</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CLH-%E9%98%9F%E5%88%97%E4%B8%AD%E7%9A%84%E8%8A%82%E7%82%B9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-Node"><span class="nav-text">CLH 队列中的节点数据结构 - Node</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8B%AC%E5%8D%A0%E7%B1%BB%E5%9E%8B%E7%9A%84%E8%8A%82%E7%82%B9-ExclusiveNode"><span class="nav-text">独占类型的节点 - ExclusiveNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E7%B1%BB%E5%9E%8B%E7%9A%84%E8%8A%82%E7%82%B9-SharedNode"><span class="nav-text">共享类型的节点 - SharedNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97%E4%B8%AD%E7%9A%84%E8%8A%82%E7%82%B9-ConditionNode"><span class="nav-text">条件等待队列中的节点 - ConditionNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%9E%E5%88%B0-CLH-%E9%98%9F%E5%88%97"><span class="nav-text">回到 CLH 队列</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6%E5%AF%B9%E8%B1%A1-ConditionObject"><span class="nav-text">条件对象 - ConditionObject</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AD%89%E5%BE%85%E6%96%B9%E6%B3%95-await-%E7%B3%BB%E5%88%97"><span class="nav-text">等待方法 - await 系列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%9F%A5%E6%96%B9%E6%B3%95-signal-%E7%B3%BB%E5%88%97"><span class="nav-text">通知方法 - signal 系列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E6%96%B9%E6%B3%95"><span class="nav-text">其他方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AQS-%E4%B8%AD%E7%9A%84%E7%8B%AC%E5%8D%A0%E9%94%81"><span class="nav-text">AQS 中的独占锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E8%8E%B7%E5%8F%96%E6%96%B9%E6%B3%95"><span class="nav-text">锁获取方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E9%87%8A%E6%94%BE%E6%96%B9%E6%B3%95"><span class="nav-text">锁释放方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AQS-%E4%B8%AD%E7%9A%84%E5%85%B1%E4%BA%AB%E9%94%81"><span class="nav-text">AQS 中的共享锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E8%8E%B7%E5%8F%96%E6%96%B9%E6%B3%95-1"><span class="nav-text">锁获取方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E9%87%8A%E6%94%BE%E6%96%B9%E6%B3%95-1"><span class="nav-text">锁释放方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81%E5%85%B1%E7%94%A8%E6%96%B9%E6%B3%95"><span class="nav-text">锁共用方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AQS-%E7%9A%84%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">AQS 的使用实例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E-AQS-%E7%9A%84%E4%B8%8D%E5%8F%AF%E9%87%8D%E5%85%A5%E4%BA%92%E6%96%A5%E9%94%81%E5%AE%9E%E7%8E%B0"><span class="nav-text">基于 AQS 的不可重入互斥锁实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E-AQS-%E7%9A%84-latch-%E5%AE%9E%E7%8E%B0"><span class="nav-text">基于 AQS 的 latch 实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-text">推荐阅读</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81%E7%9A%84%E7%8A%B6%E6%80%81"><span class="nav-text">锁的状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#FIFO-%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97"><span class="nav-text">FIFO 等待队列</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CLH-%E9%98%9F%E5%88%97%E4%B8%AD%E7%9A%84%E8%8A%82%E7%82%B9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-Node"><span class="nav-text">CLH 队列中的节点数据结构 - Node</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8B%AC%E5%8D%A0%E7%B1%BB%E5%9E%8B%E7%9A%84%E8%8A%82%E7%82%B9-ExclusiveNode"><span class="nav-text">独占类型的节点 - ExclusiveNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E7%B1%BB%E5%9E%8B%E7%9A%84%E8%8A%82%E7%82%B9-SharedNode"><span class="nav-text">共享类型的节点 - SharedNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97%E4%B8%AD%E7%9A%84%E8%8A%82%E7%82%B9-ConditionNode"><span class="nav-text">条件等待队列中的节点 - ConditionNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%9E%E5%88%B0-CLH-%E9%98%9F%E5%88%97"><span class="nav-text">回到 CLH 队列</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6%E5%AF%B9%E8%B1%A1-ConditionObject"><span class="nav-text">条件对象 - ConditionObject</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AD%89%E5%BE%85%E6%96%B9%E6%B3%95-await-%E7%B3%BB%E5%88%97"><span class="nav-text">等待方法 - await 系列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%9F%A5%E6%96%B9%E6%B3%95-signal-%E7%B3%BB%E5%88%97"><span class="nav-text">通知方法 - signal 系列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E6%96%B9%E6%B3%95"><span class="nav-text">其他方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AQS-%E4%B8%AD%E7%9A%84%E7%8B%AC%E5%8D%A0%E9%94%81"><span class="nav-text">AQS 中的独占锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E8%8E%B7%E5%8F%96%E6%96%B9%E6%B3%95"><span class="nav-text">锁获取方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E9%87%8A%E6%94%BE%E6%96%B9%E6%B3%95"><span class="nav-text">锁释放方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AQS-%E4%B8%AD%E7%9A%84%E5%85%B1%E4%BA%AB%E9%94%81"><span class="nav-text">AQS 中的共享锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E8%8E%B7%E5%8F%96%E6%96%B9%E6%B3%95-1"><span class="nav-text">锁获取方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E9%87%8A%E6%94%BE%E6%96%B9%E6%B3%95-1"><span class="nav-text">锁释放方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81%E5%85%B1%E7%94%A8%E6%96%B9%E6%B3%95"><span class="nav-text">锁共用方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AQS-%E7%9A%84%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">AQS 的使用实例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E-AQS-%E7%9A%84%E4%B8%8D%E5%8F%AF%E9%87%8D%E5%85%A5%E4%BA%92%E6%96%A5%E9%94%81%E5%AE%9E%E7%8E%B0"><span class="nav-text">基于 AQS 的不可重入互斥锁实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E-AQS-%E7%9A%84-latch-%E5%AE%9E%E7%8E%B0"><span class="nav-text">基于 AQS 的 latch 实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-text">推荐阅读</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -674,9 +678,9 @@
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "https://ffyzz.github.io/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/";
-    this.page.identifier = "2020/08/05/AbstractQueuedSynchronizer-源码全解析/";
-    this.page.title = "AbstractQueuedSynchronizer 源码全解析";
+    this.page.url = "https://ffyzz.github.io/2020/08/05/AbstractQueuedSynchronizer-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90-backup/";
+    this.page.identifier = "2020/08/05/AbstractQueuedSynchronizer-源码全解析-backup/";
+    this.page.title = "AbstractQueuedSynchronizer 源码全解析-back";
     };
   NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
     if (window.DISQUS) {
