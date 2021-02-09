@@ -30,7 +30,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752gy1gl1qqd7vqpj20y80bpdiu.jpg">
 <meta property="article:published_time" content="2020-10-31T23:09:33.000Z">
-<meta property="article:modified_time" content="2020-11-25T13:31:16.714Z">
+<meta property="article:modified_time" content="2021-02-09T14:45:10.981Z">
 <meta property="article:author" content="FFYzz">
 <meta property="article:tag" content="Spring">
 <meta name="twitter:card" content="summary">
@@ -200,7 +200,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-25 21:31:16" itemprop="dateModified" datetime="2020-11-25T21:31:16+08:00">2020-11-25</time>
+                <time title="修改时间：2021-02-09 22:45:10" itemprop="dateModified" datetime="2021-02-09T22:45:10+08:00">2021-02-09</time>
               </span>
 
           
@@ -268,12 +268,12 @@
 <li>设置 BeanFactory 的类加载器。</li>
 <li>初始化 SpringEL 处理器并设置给 BeanFactory。</li>
 <li>初始化 ResourceEditorRegistrar并设置给 BeanFactory。</li>
-<li>设置 ApplicationContextAware 处理器。</li>
+<li>设置 ApplicationContextAwareProcessor 处理器，是一个 BeanPostProcessor，postProcessBeforeInitialization 中判断 Bean 是否实现了 xxxxAware 接口，如果实现了 xxxxAware 接口，则将相应的 Aware 设置进 Bean 中去。</li>
 <li>注册内建依赖，BeanFactory / ResourceLoader / ApplicationEventPublisher / ApplicationContext。只能依赖注入，不能依赖查找。</li>
-<li>注册 ApplicationListenerDetector BeanPostProcessor。</li>
+<li>注册 ApplicationListenerDetector BeanPostProcessor，在 postProcessAfterInitialization 方法中，会为当前的 Bean 注册一个 ApplicationListener 。</li>
 <li>注册单例 Bean，包括 environment / systemProperties / systemEnvironment。</li>
 </ol>
-<h2 id="BeanFactory-的后置处理阶段"><a href="#BeanFactory-的后置处理阶段" class="headerlink" title="BeanFactory 的后置处理阶段"></a>BeanFactory 的后置处理阶段</h2><p>该阶段是留给 BeanFactory 的扩展点。</p>
+<h2 id="BeanFactory-的后置处理阶段"><a href="#BeanFactory-的后置处理阶段" class="headerlink" title="BeanFactory 的后置处理阶段"></a>BeanFactory 的后置处理阶段</h2><p>调用 AbstractApplicationContext#invokeBeanFactoryPostProcessors ，该阶段是留给 BeanFactory 的扩展点。根据是否为 </p>
 <p>AbstractApplicationContext#postProcessBeanFactory 同样也是一个空实现，具体实现由子类决定。这里以 AbstractRefreshableApplicationContext#postProcessBeanFactory 为例:</p>
 <ol>
 <li>注册了一个 ServletContextAwareProcessor。</li>
@@ -437,12 +437,12 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-count">26</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
