@@ -164,6 +164,95 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2021/03/12/Executors-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="FFYzz">
+      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Journey">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/03/12/Executors-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">Executors 源码解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-03-12 09:50:24 / 修改时间：10:36:11" itemprop="dateCreated datePublished" datetime="2021-03-12T09:50:24+08:00">2021-03-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JDK/" itemprop="url" rel="index"><span itemprop="name">JDK</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2021/03/12/Executors-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2021/03/12/Executors-源码解析/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Executors 与 Collections、Arrays 类似，都数据工具类。Executors 中提供了各种线程池的创建 API。比如 newFixedThreadPool、newWorkStealingPool、newSingleThreadExecutor 等等。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2021/03/12/Executors-%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2021/01/30/Spring-Boot-%E4%B8%AD%E7%9A%84%E8%87%AA%E5%8A%A8%E8%A3%85%E9%85%8D/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -187,10 +276,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2021-01-30 07:22:38 / 修改时间：07:39:39" itemprop="dateCreated datePublished" datetime="2021-01-30T07:22:38+08:00">2021-01-30</time>
+              <time title="创建时间：2021-01-30 07:22:38" itemprop="dateCreated datePublished" datetime="2021-01-30T07:22:38+08:00">2021-01-30</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-23 23:12:16" itemprop="dateModified" datetime="2021-04-23T23:12:16+08:00">2021-04-23</time>
+              </span>
 
           
   
@@ -217,7 +312,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>每一个 Spring Boot 应用的启动类上都会存在一个 @SpringBootApplication 注解。该注解是开启 SpringBoot 魔法的关键。<br>本篇文章将跟随源码，分析一下 Spring Boot 中自动装配的秘密。</p>
+          <p>先随便记一记。</p>
+<ol>
+<li>入口在 AbstractApplicationContext#refresh 方法中的 invokeBeanFactoryPostProcecssor。</li>
+<li>方法里面会注册一个 ConfigurationClassPostProcessor，ConfigurationClassPostProcessor 是一个 BeanDefinitionRegistryPostProcessor 。invokeBeanFactoryPostProcecssor 会遍历所有 BeanDefinitionRegistryPostProcessor。因此 ConfigurationClassPostProcessor 会被执行到。
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2021/01/30/Spring-Boot-%E4%B8%AD%E7%9A%84%E8%87%AA%E5%8A%A8%E8%A3%85%E9%85%8D/#more" rel="contents">
@@ -267,10 +365,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2021-01-26 18:08:45 / 修改时间：20:19:49" itemprop="dateCreated datePublished" datetime="2021-01-26T18:08:45+08:00">2021-01-26</time>
+              <time title="创建时间：2021-01-26 18:08:45" itemprop="dateCreated datePublished" datetime="2021-01-26T18:08:45+08:00">2021-01-26</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-23 23:10:55" itemprop="dateModified" datetime="2021-04-23T23:10:55+08:00">2021-04-23</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -307,12 +411,14 @@
 
       
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>HashMap 是一个存储键值对 (Key-Value) 形式的工具类。内部的存储结构为哈希表，由数组以及链表 / 红黑树构成。HashMap 并不是一个线程安全的工具类。在并发访问下会出现奇奇怪怪的问题。由于 JDK 中也提供了在多线程场景下使用的键值存储数据结构-ConcurrentHashMap，因此对于 HashMap 在多线程环境下出现的问题就不展开讨论了。本篇文章将对 HashMap 的底层实现细节展开分析。若文章如有疏漏，大家可以相互讨论。</p>
-<h2 id="类结构图"><a href="#类结构图" class="headerlink" title="类结构图"></a>类结构图</h2><p><img src="http://ww1.sinaimg.cn/large/9be02752gy1gn1bnz8s1sj20qg0cs75b.jpg" alt="HashMap.png"></p>
-<p>首先看一下类的结构图。HashMap 继承自 AbstractMap 抽象类，实现了 Map 接口。很多小伙伴平时都会说 HashMap 是集合工具类。这里所说的集合工具类是更加广泛的概念，与 JDK 中的 Collection 接口是没有关系的。</p>
-<h2 id="底层存储的数据结构"><a href="#底层存储的数据结构" class="headerlink" title="底层存储的数据结构"></a>底层存储的数据结构</h2><p>正如前文所说，HashMap 的底层使用的是数组+链表或者红黑树的结构。如下图所示。</p>
-<p><img src="http://ww1.sinaimg.cn/mw690/9be02752gy1gn1cl2uaxaj20rs0fnmz5.jpg" alt="IMG_329D.png"></p>
-<p>链表的节点在 HashMap 中使用 Node 节点表示，红黑树节点由 TreeNode 数据结构表示。要存入到 HashMap 中的 K-V 对根据 key 计算出来的 hashcode，存放到 table 的相应位置中。table 就是 HashMap 中存储元素的数组。table 的长度一定是 2 的 n 次幂。至于为什么要求 table 的长度为 2 的 n 次幂，与存放元素时的<strong>寻址方式</strong>有关。哈希表中的元素会发生哈希冲突的情况。当发生哈希冲突的时候。首先会通过<strong>链地址法解决冲突</strong>。table 中同一位置上发生冲突的 K-V 对数达到 8 个，当<strong>第 9 个 K-V 对</strong>再次经过计算后落在该位置时，会触发 treeify，也就是将<strong>链表转变成红黑树</strong>。极端情况下，当 table 的长度小于 64 时，且存在 9 个元素均落在 table 的同一个位置上，HashMap 并不会触发 treeify 的操作，而是先尝试扩容。因为扩容之后，原本落在同一位置上的 K-V 对中的元素可能会落到 <strong>原来位置 +  原 table 大小</strong> 的位置。当 table 的长度达到 treeify 的最小阈值 64 并且在当前 table 中还存在同一位置上存在大于等于 9 个节点的情况，那么相应位置上则会触发 treeify。<br>上述简单的对 HashMap 的底层数据结构进行了介绍，下面将通过源码对 HashMap 进行详细的分析。</p>
-<h2 id="HashMap-中的常量"><a href="#HashMap-中的常量" class="headerlink" title="HashMap 中的常量"></a>HashMap 中的常量</h2><h2 id="Fail-Fast"><a href="#Fail-Fast" class="headerlink" title="Fail-Fast"></a>Fail-Fast</h2>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2021/01/26/HashMap-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90-JDK11/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -602,7 +708,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-25 21:06:48" itemprop="dateModified" datetime="2020-11-25T21:06:48+08:00">2020-11-25</time>
+                <time title="修改时间：2021-04-23 23:06:50" itemprop="dateModified" datetime="2021-04-23T23:06:50+08:00">2021-04-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -701,7 +807,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-29 15:08:07" itemprop="dateModified" datetime="2020-11-29T15:08:07+08:00">2020-11-29</time>
+                <time title="修改时间：2021-04-23 23:07:02" itemprop="dateModified" datetime="2021-04-23T23:07:02+08:00">2021-04-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -964,106 +1070,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://ffyzz.github.io/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.png">
-      <meta itemprop="name" content="FFYzz">
-      <meta itemprop="description" content="在自我鄙视中一步一步往上爬">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Journey">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/" class="post-title-link" itemprop="url">DispatcherServlet 在 Tomcat 中的启动过程</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-11-21 20:01:43" itemprop="dateCreated datePublished" datetime="2020-11-21T20:01:43+08:00">2020-11-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-26 18:46:15" itemprop="dateModified" datetime="2020-11-26T18:46:15+08:00">2020-11-26</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
-                </span>
-                  ，
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Spring/Spring-MVC/" itemprop="url" rel="index"><span itemprop="name">Spring MVC</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus：</span>
-    
-    <a title="disqus" href="/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/11/21/DispatcherServlet-在-Tomcat-中的启动过程/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>通常在一个 Web 应用中，会通过将 Web 程序部署到类似于 Tomcat/Jetty 这类 Web 容器中去。Tomcat 在整个系统扮演的角色主要有两个，一个是面向 HTTP 请求的 HTTP 服务器，另一个是后面用于处理后端逻辑的 Servlet 容器。SpringMVC 简单的来说就是一个 Servlet。运行在 Servlet 容器中。</p>
-<p>这篇文章将简单概述 SpringMVC 的初始化过程。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2020/11/21/DispatcherServlet-%E5%9C%A8-Tomcat-%E4%B8%AD%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1135,7 +1141,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-count">27</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

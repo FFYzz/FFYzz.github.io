@@ -28,14 +28,14 @@
 <meta property="og:site_name" content="Journey">
 <meta property="og:description" content="ReentrantLock 具有和 synchronized 关键字相同的行为和语义，包括同步控制、可重入等。但是 ReentrantLock 在使用上更加灵活，在功能上更加全面(比如支持公平锁与非公平锁)。ReentrantLock 的实现的基于 AbstractQueuedSynchronizer 实现的。ReentrantLock 实现了 Lock 接口，内部类 Sync 继承自 Abstr">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gecoikuxvjj21fo0m4wg0.jpg">
-<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gebyah35zej225g0z2aiv.jpg">
+<meta property="og:image" content="https://ww1.sinaimg.cn/large/9be02752ly1gecoikuxvjj21fo0m4wg0.jpg">
+<meta property="og:image" content="https://ww1.sinaimg.cn/large/9be02752ly1gebyah35zej225g0z2aiv.jpg">
 <meta property="article:published_time" content="2020-08-05T02:47:46.000Z">
-<meta property="article:modified_time" content="2020-12-13T13:17:21.237Z">
+<meta property="article:modified_time" content="2021-04-23T15:08:10.112Z">
 <meta property="article:author" content="FFYzz">
 <meta property="article:tag" content="JDK">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gecoikuxvjj21fo0m4wg0.jpg">
+<meta name="twitter:image" content="https://ww1.sinaimg.cn/large/9be02752ly1gecoikuxvjj21fo0m4wg0.jpg">
 
 <link rel="canonical" href="https://ffyzz.github.io/2020/08/05/ReentrantLock-%E6%BA%90%E7%A0%81%E5%85%A8%E8%A7%A3%E6%9E%90/">
 
@@ -201,7 +201,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-12-13 21:17:21" itemprop="dateModified" datetime="2020-12-13T21:17:21+08:00">2020-12-13</time>
+                <time title="修改时间：2021-04-23 23:08:10" itemprop="dateModified" datetime="2021-04-23T23:08:10+08:00">2021-04-23</time>
               </span>
 
           
@@ -239,9 +239,9 @@
         <p>ReentrantLock 具有和 synchronized 关键字相同的行为和语义，包括同步控制、可重入等。但是 ReentrantLock 在使用上更加灵活，在功能上更加全面(比如支持公平锁与非公平锁)。ReentrantLock 的实现的基于 AbstractQueuedSynchronizer 实现的。ReentrantLock 实现了 Lock 接口，内部类 Sync 继承自 AbstractQueuedSynchronizer，类关系图如下图所示。</p>
 <a id="more"></a>
 
-<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gecoikuxvjj21fo0m4wg0.jpg"></p>
+<p><img src="https://ww1.sinaimg.cn/large/9be02752ly1gecoikuxvjj21fo0m4wg0.jpg"></p>
 <p>ReentrantLock 类中的 API 由下图所示，基本上所有的方法实现都委托给了持有的 Sync 实例实现。因此， ReentrantLock 的源码解读主要是解读 Sync 内部类的具体实现。</p>
-<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gebyah35zej225g0z2aiv.jpg"></p>
+<p><img src="https://ww1.sinaimg.cn/large/9be02752ly1gebyah35zej225g0z2aiv.jpg"></p>
 <h2 id="ReentrantLock-类中的方法"><a href="#ReentrantLock-类中的方法" class="headerlink" title="ReentrantLock 类中的方法"></a>ReentrantLock 类中的方法</h2><h3 id="构造方法"><a href="#构造方法" class="headerlink" title="构造方法"></a>构造方法</h3><p>因为 ReentrantLock 支持公平锁与非公平锁的实现。因此在 ReentrantLock 类的构造方法中，支持指定生成 公平锁实例或者非公平锁实例。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ReentrantLock</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    sync = <span class="keyword">new</span> NonfairSync();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -464,7 +464,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-count">27</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
