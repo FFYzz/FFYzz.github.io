@@ -28,13 +28,13 @@
 <meta property="og:site_name" content="Journey">
 <meta property="og:description" content="前言最近在刷 LeetCode 的时候，在 Discuss 区看到有人提了一个 Floyd’s Cycle Detection Algorithm(弗洛伊德循环检测算法)。咋一看，是个从来没了解的算法，很好奇。于是就继续看了下去。大概扫了一眼代码实现后，发现这个看起来很玄乎的算法自己以前也应用过。记得很清楚是用在了检测链表存不存在环的一道题目上。那道题的解法中使用了快慢指针，两个指针同时开始移动。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg">
+<meta property="og:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg">
 <meta property="article:published_time" content="2020-08-05T07:05:17.000Z">
-<meta property="article:modified_time" content="2021-04-23T15:08:41.002Z">
+<meta property="article:modified_time" content="2021-05-13T16:07:35.473Z">
 <meta property="article:author" content="FFYzz">
 <meta property="article:tag" content="JDK">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg">
+<meta name="twitter:image" content="http://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg">
 
 <link rel="canonical" href="https://ffyzz.github.io/2020/08/05/Floyd-s-Cycle-Detection-Algorithm/">
 
@@ -200,7 +200,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-23 23:08:41" itemprop="dateModified" datetime="2021-04-23T23:08:41+08:00">2021-04-23</time>
+                <time title="修改时间：2021-05-14 00:07:35" itemprop="dateModified" datetime="2021-05-14T00:07:35+08:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -247,7 +247,7 @@
         <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>最近在刷 LeetCode 的时候，在 Discuss 区看到有人提了一个 Floyd’s Cycle Detection Algorithm(弗洛伊德循环检测算法)。咋一看，是个从来没了解的算法，很好奇。于是就继续看了下去。大概扫了一眼代码实现后，发现这个看起来很玄乎的算法自己以前也应用过。记得很清楚是用在了检测链表存不存在环的一道题目上。那道题的解法中使用了快慢指针，两个指针同时开始移动。快指针每次移动两步，慢指针每次移动一步。如果链表中存在环，那么慢指针与快指针最终一定会相遇。</p>
 <a id="more"></a>
 <h2 id="Floyd’s-Cycle-Detection-Algorithm"><a href="#Floyd’s-Cycle-Detection-Algorithm" class="headerlink" title="Floyd’s Cycle Detection Algorithm"></a>Floyd’s Cycle Detection Algorithm</h2><p>首先给出一个存在环的链表。</p>
-<p><img src="https://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg"></p>
+<p><img src="http://ww1.sinaimg.cn/large/9be02752ly1gdfq3mzt8tj211808o0sy.jpg"></p>
 <p>Floyd’s Cycle Detection Algorithm 的思想就是使用两个指针，两个指针以不同的速率往前移动。一般快的指针的速率是慢指针的两倍。因此两个指针的距离在每一次移动之后都会增加 1。如果两个指针在某处相遇了，那么说明链表中存在环。如果快指针走到了链表的末尾，则说明链表中不存在环。</p>
 <p>以下是 Floyd’s Cycle Detection Algorithm 的代码模板。</p>
 <p>链表数据结构:</p>
